@@ -151,15 +151,25 @@ export default function Editor() {
 
   // Ready state - human is done
   if (status === 'ready') {
+    const pullCommand = `Pull my updated config from: ${window.location.origin}/api/pull/${sessionId}?token=${token}`
+
     return (
       <div className="min-h-screen bg-[#fafafa] flex items-center justify-center p-4">
-        <div className="text-center space-y-6">
+        <div className="text-center space-y-6 max-w-lg">
           <h1 className="text-2xl font-mono tracking-tight">anatomy</h1>
           <div className="space-y-2">
             <p className="text-green-600 font-medium">Changes saved!</p>
-            <p className="text-gray-500 text-sm">Your agent will pick up the changes shortly.</p>
           </div>
-          <p className="text-gray-400 text-xs font-mono">You can close this tab</p>
+          <div className="space-y-3">
+            <p className="text-gray-500 text-sm">Send this to your agent:</p>
+            <div
+              onClick={() => navigator.clipboard.writeText(pullCommand)}
+              className="bg-white border border-gray-200 p-4 text-left text-sm font-mono cursor-pointer hover:border-gray-400 transition-colors"
+            >
+              <span className="text-gray-600 break-all">{pullCommand}</span>
+            </div>
+            <p className="text-gray-400 text-xs">click to copy</p>
+          </div>
         </div>
       </div>
     )
