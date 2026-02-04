@@ -9,11 +9,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const { id } = await params
   const token = request.nextUrl.searchParams.get('token')
 
-  if (!verifyToken(id, token)) {
+  if (!await verifyToken(id, token)) {
     return NextResponse.json({ success: false, error: 'Invalid or expired session' }, { status: 401 })
   }
 
-  const session = getSession(id)
+  const session = await getSession(id)
   if (!session) {
     return NextResponse.json({ success: false, error: 'Session not found' }, { status: 404 })
   }
@@ -31,7 +31,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   const { id } = await params
   const token = request.nextUrl.searchParams.get('token')
 
-  if (!verifyToken(id, token)) {
+  if (!await verifyToken(id, token)) {
     return NextResponse.json({ success: false, error: 'Invalid or expired session' }, { status: 401 })
   }
 
@@ -42,7 +42,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ success: false, error: 'Invalid config format' }, { status: 400 })
   }
 
-  const session = updateSessionConfig(id, config)
+  const session = await updateSessionConfig(id, config)
   if (!session) {
     return NextResponse.json({ success: false, error: 'Session not found' }, { status: 404 })
   }
@@ -55,11 +55,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   const { id } = await params
   const token = request.nextUrl.searchParams.get('token')
 
-  if (!verifyToken(id, token)) {
+  if (!await verifyToken(id, token)) {
     return NextResponse.json({ success: false, error: 'Invalid or expired session' }, { status: 401 })
   }
 
-  const session = markSessionReady(id)
+  const session = await markSessionReady(id)
   if (!session) {
     return NextResponse.json({ success: false, error: 'Session not found' }, { status: 404 })
   }
