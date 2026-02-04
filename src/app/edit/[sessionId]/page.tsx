@@ -151,12 +151,12 @@ export default function Editor() {
 
   // Ready state - human is done
   if (status === 'ready') {
-    const filesJson = JSON.stringify(files, null, 2)
-    const copyText = `Update my config files with these contents:\n\n${filesJson}`
+    const pullUrl = `${window.location.origin}/api/pull/${sessionId}?token=${token}`
+    const copyText = `Pull my updated config from: ${pullUrl}`
 
     return (
       <div className="min-h-screen bg-[#fafafa] flex items-center justify-center p-4">
-        <div className="text-center space-y-6 max-w-2xl w-full">
+        <div className="text-center space-y-6 max-w-lg">
           <h1 className="text-2xl font-mono tracking-tight">anatomy</h1>
           <div className="space-y-2">
             <p className="text-green-600 font-medium">Changes saved!</p>
@@ -165,9 +165,9 @@ export default function Editor() {
             <p className="text-gray-500 text-sm">Send this to your agent:</p>
             <div
               onClick={() => navigator.clipboard.writeText(copyText)}
-              className="bg-white border border-gray-200 p-4 text-left text-xs font-mono cursor-pointer hover:border-gray-400 transition-colors max-h-64 overflow-y-auto"
+              className="bg-white border border-gray-200 p-4 text-left text-sm font-mono cursor-pointer hover:border-gray-400 transition-colors"
             >
-              <pre className="text-gray-600 whitespace-pre-wrap break-all">{copyText}</pre>
+              <span className="text-gray-600 break-all">{copyText}</span>
             </div>
             <p className="text-gray-400 text-xs">click to copy</p>
           </div>
