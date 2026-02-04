@@ -20,9 +20,12 @@ function sessionKey(id: string): string {
   return `session:${id}`
 }
 
-// Check if Vercel KV is available
+// Check if Vercel KV / Upstash Redis is available
 async function getKV() {
-  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+  if (
+    (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) ||
+    (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
+  ) {
     const { kv } = await import('@vercel/kv')
     return kv
   }
