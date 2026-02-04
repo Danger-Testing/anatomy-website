@@ -5,20 +5,20 @@ import { BodyPart } from '@/lib/types'
 
 interface ArtifactProps {
   part: BodyPart
-  onEdit: () => void
-  onImageChange: () => void
+  onClick: () => void
   onPositionChange: (position: { x: number; y: number }) => void
   onResize: (size: { width: number; height: number }) => void
   containerRef: React.RefObject<HTMLDivElement | null>
+  isZoomed?: boolean
 }
 
 export function Artifact({
   part,
-  onEdit,
-  onImageChange,
+  onClick,
   onPositionChange,
   onResize,
-  containerRef
+  containerRef,
+  isZoomed
 }: ArtifactProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
@@ -26,15 +26,30 @@ export function Artifact({
   const dragStart = useRef({ x: 0, y: 0, startX: 0, startY: 0 })
   const resizeStart = useRef({ width: 0, height: 0, startX: 0, startY: 0 })
 
+  const clickStart = useRef<{ x: number; y: number; time: number } | null>(null)
+
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return
     e.preventDefault()
+    clickStart.current = { x: e.clientX, y: e.clientY, time: Date.now() }
     setIsDragging(true)
     dragStart.current = {
       x: e.clientX,
       y: e.clientY,
       startX: part.position.x,
       startY: part.position.y
+    }
+  }
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if (clickStart.current) {
+      const dx = Math.abs(e.clientX - clickStart.current.x)
+      const dy = Math.abs(e.clientY - clickStart.current.y)
+      const dt = Date.now() - clickStart.current.time
+      if (dx < 5 && dy < 5 && dt < 300) {
+        onClick()
+      }
+      clickStart.current = null
     }
   }
 
@@ -104,68 +119,26 @@ export function Artifact({
         zIndex: isDragging || isHovered ? 50 : 10
       }}
       onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* The artifact image */}
-      <img
-        src={part.imageUrl}
-        alt={part.label}
-        className="w-full h-full object-contain transition-all duration-500"
-        style={{
-          filter: isHovered ? 'grayscale(0%)' : 'grayscale(100%)',
-          opacity: isHovered ? 1 : 0.8
-        }}
-        draggable={false}
-      />
-
-      {/* Label */}
+      {/* Label on top */}
       <div
-        className={`absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-widest transition-opacity whitespace-nowrap ${
-          isHovered ? 'opacity-100' : 'opacity-0'
-        }`}
-        style={{ color: '#999' }}
+        className="absolute -top-8 left-1/2 -translate-x-1/2 text-lg uppercase tracking-wider font-bold whitespace-nowrap"
+        style={{ color: '#000' }}
       >
         {part.label}
       </div>
 
-      {/* Action buttons on hover */}
-      {isHovered && (
-        <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex gap-1">
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onEdit()
-            }}
-            className="px-2 py-1 bg-black text-white text-[10px] uppercase tracking-wider hover:bg-gray-800"
-            title="Edit content"
-          >
-            edit
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onImageChange()
-            }}
-            className="px-2 py-1 bg-black text-white text-[10px] uppercase tracking-wider hover:bg-gray-800"
-            title="Change image"
-          >
-            image
-          </button>
-        </div>
-      )}
+      {/* The artifact image */}
+      <img
+        src={part.imageUrl}
+        alt={part.label}
+        className="w-full h-full object-contain"
+        draggable={false}
+      />
 
-      {/* Resize handle */}
-      {isHovered && (
-        <div
-          className="absolute bottom-0 right-0 w-3 h-3 cursor-se-resize opacity-50 hover:opacity-100"
-          onMouseDown={handleResizeStart}
-        >
-          <svg viewBox="0 0 12 12" className="w-full h-full">
-            <path d="M10 10H6M10 10V6M10 10L6 6" stroke="#000" strokeWidth="1.5" fill="none" />
-          </svg>
-        </div>
-      )}
     </div>
   )
 }

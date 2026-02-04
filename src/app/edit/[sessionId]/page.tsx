@@ -3,8 +3,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import { Artifact } from '@/components/Artifact'
-import { EditorModal } from '@/components/EditorModal'
-import { ImageSearchModal } from '@/components/ImageSearchModal'
 import { BodyPart, DEFAULT_BODY_PARTS, AgentConfig } from '@/lib/types'
 
 type SessionStatus = 'loading' | 'editing' | 'ready' | 'error'
@@ -25,8 +23,10 @@ export default function Editor() {
   const [bodyParts, setBodyParts] = useState<BodyPart[]>(DEFAULT_BODY_PARTS)
 
   // Modal state
-  const [editingFile, setEditingFile] = useState<string | null>(null)
-  const [changingImageFor, setChangingImageFor] = useState<string | null>(null)
+
+  // Zoom state
+  const [zoomedPart, setZoomedPart] = useState<BodyPart | null>(null)
+  const [isZooming, setIsZooming] = useState(false)
 
   // Load config on mount
   useEffect(() => {
@@ -127,32 +127,6 @@ export default function Editor() {
     )
   }
 
-  function updatePartImage(partId: string, imageUrl: string, objectId: number) {
-    setBodyParts((prev) =>
-      prev.map((p) =>
-        p.id === partId ? { ...p, imageUrl, metObjectId: objectId || undefined } : p
-      )
-    )
-    setChangingImageFor(null)
-  }
-
-  function exportConfig() {
-    const config: AgentConfig = {
-      files,
-      layout: bodyParts.reduce((acc, part) => {
-        acc[part.id] = part
-        return acc
-      }, {} as { [key: string]: BodyPart })
-    }
-    const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${sessionId}-config.json`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
   // Loading state
   if (status === 'loading') {
     return (
@@ -191,34 +165,53 @@ export default function Editor() {
     )
   }
 
+  // Calculate zoom transform to center on a part
+  const getZoomTransform = () => {
+    if (!zoomedPart || !isZooming) return {}
+
+    const scale = 6 // How much to zoom in
+
+    // The dot is positioned at part.position.x% and part.position.y% of the container
+    // We want to translate so that point ends up at the center of the viewport
+    // transform-origin is top-left by default
+
+    // After scaling, the point at (x%, y%) will be at (x% * scale, y% * scale)
+    // We want to move it to (50%, 50%) of the viewport
+    // So we need to translate by: 50% - x% * scale (in the scaled coordinate system)
+    // Which means: (50 - x * scale) / scale = 50/scale - x
+
+    const originX = zoomedPart.position.x
+    const originY = zoomedPart.position.y
+
+    // Calculate offset to center the dot (adding ~30px for the label above the dot)
+    const translateX = (50 - originX * scale) / scale
+    const translateY = (50 - originY * scale) / scale - 2 // slight adjustment for label
+
+    return {
+      transform: `scale(${scale}) translate(${translateX}%, ${translateY}%)`,
+      transformOrigin: '0 0',
+      transition: 'transform 1.2s cubic-bezier(0.4, 0, 0.2, 1)'
+    }
+  }
+
   // Main editor
   return (
-    <div className="min-h-screen bg-[#fafafa] flex flex-col">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-[#fafafa]/80 backdrop-blur-sm">
+    <div className="min-h-screen bg-[#fafafa] flex flex-col relative overflow-hidden">
+      {/* Header - stays fixed above zoom */}
+      <header className={`fixed top-0 left-0 right-0 z-[200] transition-opacity duration-500 ${isZooming ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-4">
-            <h1 className="font-mono text-sm tracking-wide">anatomy</h1>
-            <span className="text-gray-300">|</span>
-            <span className="font-mono text-xs text-gray-500">{sessionId}</span>
-          </div>
+          <div></div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={exportConfig}
-              className="text-gray-500 hover:text-black text-sm font-mono"
-            >
-              export
-            </button>
             <button
               onClick={saveConfig}
               disabled={saving}
-              className="text-gray-500 hover:text-black text-sm font-mono disabled:opacity-50"
+              className="text-black text-lg uppercase tracking-wider font-bold disabled:opacity-50"
             >
               {saving ? 'saving...' : 'save'}
             </button>
             <button
               onClick={markReady}
-              className="bg-black text-white px-4 py-2 rounded text-sm font-medium hover:bg-gray-800"
+              className="text-black text-lg uppercase tracking-wider font-bold"
             >
               ready
             </button>
@@ -226,57 +219,106 @@ export default function Editor() {
         </div>
       </header>
 
-      {/* Body canvas */}
-      <main
-        ref={containerRef}
-        className="flex-1 relative mt-16"
-        style={{ minHeight: 'calc(100vh - 64px)' }}
+      {/* Back button when zoomed */}
+      <button
+        onClick={() => {
+          setIsZooming(false)
+          setTimeout(() => setZoomedPart(null), 1200)
+        }}
+        className={`fixed top-6 left-6 z-[200] text-black text-lg uppercase tracking-wider font-bold transition-opacity duration-500 ${isZooming ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
       >
-        {bodyParts.map((part) => (
+        ← back
+      </button>
+
+      {/* Zoomable canvas */}
+      <div
+        ref={containerRef}
+        className="flex-1 relative"
+        style={{
+          minHeight: '100vh',
+          ...getZoomTransform()
+        }}
+      >
+        {/* Logo in top left */}
+        <img
+          src="/logo.png"
+          alt="Anatomy Logo"
+          className="absolute top-6 left-6 z-50 w-[40vw] max-w-[400px] min-w-[200px] h-auto"
+        />
+
+        {/* Centered name */}
+        <h1 className="absolute bottom-6 right-6 z-10 text-lg uppercase tracking-wider text-black font-bold pointer-events-none">
+          anatomy
+        </h1>
+
+        {/* Lobster + artifacts container (scaled up) */}
+        <div
+          className="absolute inset-0 z-20"
+          style={{
+            transform: 'scale(1.3)',
+            transformOrigin: 'center center'
+          }}
+        >
+          {/* Lobster background */}
+          <div
+            className="absolute inset-0 z-0 pointer-events-none p-24"
+            style={{
+              backgroundImage: 'url(/lobster.png)',
+              backgroundSize: 'contain',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              opacity: 0.15
+            }}
+          />
+
+          {bodyParts.map((part) => (
           <Artifact
             key={part.id}
             part={part}
             containerRef={containerRef}
-            onEdit={() => {
+            isZoomed={zoomedPart?.id === part.id}
+            onClick={() => {
               if (!files[part.filename]) {
                 setFiles((prev) => ({
                   ...prev,
                   [part.filename]: `# ${part.label}\n\n`
                 }))
               }
-              setEditingFile(part.filename)
+              setZoomedPart(part)
+              // Small delay to let state update before zooming
+              requestAnimationFrame(() => setIsZooming(true))
             }}
-            onImageChange={() => setChangingImageFor(part.id)}
             onPositionChange={(pos) => updatePartPosition(part.id, pos)}
             onResize={(size) => updatePartSize(part.id, size)}
           />
         ))}
-
-        {/* Instructions */}
-        <div className="absolute bottom-6 left-6 text-xs text-gray-400 font-mono space-y-1">
-          <p>drag to move</p>
-          <p>hover for actions</p>
-          <p className="text-gray-300 mt-2">click &quot;ready&quot; when done</p>
         </div>
-      </main>
 
-      {/* Editor modal */}
-      {editingFile && (
-        <EditorModal
-          filename={editingFile}
-          content={files[editingFile] || ''}
-          onSave={(content) => updateFileContent(editingFile, content)}
-          onClose={() => setEditingFile(null)}
-        />
-      )}
+      </div>
 
-      {/* Image search modal */}
-      {changingImageFor && (
-        <ImageSearchModal
-          onSelect={(url, id) => updatePartImage(changingImageFor, url, id)}
-          onClose={() => setChangingImageFor(null)}
-        />
-      )}
+      {/* Editor overlay when zoomed */}
+      <div
+        className={`fixed inset-0 z-[150] flex items-center justify-end pointer-events-none transition-opacity duration-700 ${isZooming ? 'opacity-100' : 'opacity-0'}`}
+        style={{ transitionDelay: isZooming ? '600ms' : '0ms' }}
+      >
+        {zoomedPart && (
+          <div className="w-1/2 h-full p-12 pt-20 pointer-events-auto bg-gradient-to-l from-[#fafafa] via-[#fafafa] to-transparent">
+            <div className="text-xs uppercase tracking-widest text-gray-400 mb-4">
+              {zoomedPart.filename}
+            </div>
+            <div className="text-2xl mb-6 text-gray-600">
+              {zoomedPart.label}
+            </div>
+            <textarea
+              value={files[zoomedPart.filename] || ''}
+              onChange={(e) => updateFileContent(zoomedPart.filename, e.target.value)}
+              className="flex-1 w-full bg-transparent border border-gray-200 rounded-lg p-6 text-sm leading-relaxed resize-none focus:outline-none focus:border-gray-400"
+              placeholder={`Write content for ${zoomedPart.label}...`}
+              style={{ maxHeight: 'calc(100vh - 200px)' }}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Error toast */}
       {error && (

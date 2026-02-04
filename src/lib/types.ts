@@ -20,70 +20,62 @@ export interface AgentConfig {
   layout?: { [partId: string]: BodyPart }
 }
 
-// Default body parts with Met Museum images
+// Default body parts
 export const DEFAULT_BODY_PARTS: BodyPart[] = [
   {
     id: 'head',
     filename: 'IDENTITY.md',
     label: 'Identity',
-    imageUrl: 'https://images.metmuseum.org/CRDImages/ao/original/DP231460.jpg', // Benin bronze head
-    metObjectId: 318622,
-    position: { x: 50, y: 5, width: 120, height: 150 }
+    imageUrl: '/identity.png',
+    position: { x: 57.51, y: 49.39, width: 100, height: 100 }
   },
   {
     id: 'soul-left',
     filename: 'SOUL.md',
     label: 'Soul',
-    imageUrl: 'https://images.metmuseum.org/CRDImages/as/original/DP251139.jpg', // Chinese Buddhist figure
-    metObjectId: 39904,
-    position: { x: 10, y: 20, width: 80, height: 180 }
+    imageUrl: '/soul.png',
+    position: { x: 32.07, y: 38.26, width: 100, height: 100 }
   },
   {
     id: 'soul-right',
     filename: 'MEMORY.md',
     label: 'Memory',
-    imageUrl: 'https://images.metmuseum.org/CRDImages/as/original/DP251144.jpg', // Japanese figure
-    metObjectId: 45428,
-    position: { x: 80, y: 20, width: 80, height: 180 }
+    imageUrl: '/memory.png',
+    position: { x: 55.81, y: 34.40, width: 100, height: 100 }
   },
   {
     id: 'heart',
     filename: 'HEARTBEAT.md',
     label: 'Heartbeat',
-    imageUrl: 'https://images.metmuseum.org/CRDImages/ep/original/DT1567.jpg', // Sacred heart
-    metObjectId: 436105,
-    position: { x: 42, y: 35, width: 100, height: 120 }
+    imageUrl: '/heart.png',
+    position: { x: 42.65, y: 43.89, width: 100, height: 100 }
   },
   {
     id: 'body',
     filename: 'AGENTS.md',
     label: 'Agents',
-    imageUrl: 'https://images.metmuseum.org/CRDImages/eg/original/DT531.jpg', // Egyptian figure
-    metObjectId: 545,
-    position: { x: 35, y: 45, width: 140, height: 200 }
+    imageUrl: '/agent.png',
+    position: { x: 45.09, y: 52.56, width: 100, height: 100 }
   },
   {
     id: 'tools',
     filename: 'TOOLS.md',
     label: 'Tools',
-    imageUrl: 'https://images.metmuseum.org/CRDImages/as/original/DP-15581-029.jpg', // Chola bronze hand
-    metObjectId: 39328,
-    position: { x: 75, y: 40, width: 70, height: 100 }
+    imageUrl: '/tool.png',
+    position: { x: 71.78, y: 29.24, width: 100, height: 100 }
   },
   {
     id: 'reference',
     filename: 'REFERENCE.md',
     label: 'Reference',
-    imageUrl: 'https://images.metmuseum.org/CRDImages/ao/original/DP-13440-031.jpg', // Pre-columbian
-    metObjectId: 310551,
-    position: { x: 15, y: 70, width: 90, height: 120 }
+    imageUrl: '/references.png',
+    position: { x: 33.56, y: 70.55, width: 100, height: 100 }
   },
   {
     id: 'user',
     filename: 'USER.md',
     label: 'User',
-    imageUrl: 'https://images.metmuseum.org/CRDImages/is/original/DP238067.jpg', // Islamic figure
-    metObjectId: 449537,
-    position: { x: 70, y: 70, width: 90, height: 120 }
+    imageUrl: '/user.png',
+    position: { x: 21.21, y: 40.64, width: 100, height: 100 }
   }
 ]

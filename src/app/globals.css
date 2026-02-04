@@ -1,11 +1,8 @@
 @import "tailwindcss";
 
-@theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
 body {
   background: #fafafa;
   color: #111;
+  font-family: "neue-haas-grotesk-display", sans-serif;
+  font-weight: 700;
 }
