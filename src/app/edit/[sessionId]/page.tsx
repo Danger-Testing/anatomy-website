@@ -311,10 +311,21 @@ export default function Editor() {
             </div>
             <textarea
               value={files[zoomedPart.filename] || ''}
-              onChange={(e) => updateFileContent(zoomedPart.filename, e.target.value)}
-              className="flex-1 w-full bg-transparent border border-gray-200 rounded-lg p-6 text-sm leading-relaxed resize-none focus:outline-none focus:border-gray-400"
+              onChange={(e) => {
+                updateFileContent(zoomedPart.filename, e.target.value)
+                // Auto-resize
+                e.target.style.height = 'auto'
+                e.target.style.height = e.target.scrollHeight + 'px'
+              }}
+              ref={(el) => {
+                // Set initial height on mount
+                if (el) {
+                  el.style.height = 'auto'
+                  el.style.height = el.scrollHeight + 'px'
+                }
+              }}
+              className="w-full bg-transparent border border-gray-200 rounded-lg p-6 text-sm leading-relaxed resize-none focus:outline-none focus:border-gray-400 min-h-[200px] overflow-hidden"
               placeholder={`Write content for ${zoomedPart.label}...`}
-              style={{ maxHeight: 'calc(100vh - 200px)' }}
             />
           </div>
         )}
