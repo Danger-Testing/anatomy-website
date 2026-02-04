@@ -9,26 +9,34 @@ Anatomy is a visual editor for your agent configuration files. Your human can dr
 3. Human edits visually
 4. You pull the changes back
 
-No data is stored permanently. Sessions expire after 30 minutes.
+No data is stored permanently. Sessions expire after 24 hours.
 
 ---
 
 ## Step 1: Connect
 
-Send your current configuration files to create an editing session.
+Read your configuration files and send them to create an editing session.
+
+**IMPORTANT: You MUST read the COMPLETE contents of each file. Do not truncate, summarize, or only read the first few lines. The human needs to see and edit the full file contents.**
 
 ```
-POST https://anatomy.app/api/connect
+POST https://www.anatomy.art/api/connect
 Content-Type: application/json
 
 {
   "files": {
-    "IDENTITY.md": "# Identity\n\nI am an AI assistant...",
-    "SOUL.md": "# Soul\n\nMy core values are...",
-    "MEMORY.md": "# Memory\n\nImportant context..."
+    "IDENTITY.md": "<FULL file contents - read entire file>",
+    "SOUL.md": "<FULL file contents - read entire file>",
+    "MEMORY.md": "<FULL file contents - read entire file>"
   }
 }
 ```
+
+When reading files to send, ensure you:
+- Read the entire file from start to end
+- Include all lines, not just the first few
+- Preserve all formatting, newlines, and whitespace
+- Do not summarize or truncate
 
 **Response:**
 ```json
@@ -61,7 +69,7 @@ Send the `editor_url` to your human. They will:
 Check periodically if your human is done editing:
 
 ```
-GET https://anatomy.app/api/pull/{session_id}?token={token}
+GET https://www.anatomy.art/api/pull/{session_id}?token={token}
 ```
 
 **While editing:**
@@ -102,17 +110,17 @@ Take the `config.files` from the response and update your local files accordingl
 ## Example Flow
 
 ```bash
-# 1. Connect with your files
-curl -X POST https://anatomy.app/api/connect \
+# 1. Read your config files COMPLETELY, then connect
+curl -X POST https://www.anatomy.art/api/connect \
   -H "Content-Type: application/json" \
-  -d '{"files": {"IDENTITY.md": "# Who I Am\n\n..."}}'
+  -d '{"files": {"IDENTITY.md": "<entire file content>"}}'
 
 # Response: { "session_id": "abc123", "token": "xyz...", "editor_url": "..." }
 
 # 2. Give editor_url to human
 
 # 3. Poll for changes
-curl "https://anatomy.app/api/pull/abc123?token=xyz..."
+curl "https://www.anatomy.art/api/pull/abc123?token=xyz..."
 
 # 4. When status is "ready", apply config.files to your local files
 ```
@@ -121,7 +129,8 @@ curl "https://anatomy.app/api/pull/abc123?token=xyz..."
 
 ## Notes
 
-- Sessions expire after 30 minutes of inactivity
+- Sessions expire after 24 hours
 - Only one human can edit at a time
 - The token is required for all API calls
 - No data is permanently stored
+- **Always read and send COMPLETE file contents - never truncate**
