@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  await createSession(sessionId, token, config)
+  createSession(sessionId, token, config)
 
   const origin = request.nextUrl.origin
 

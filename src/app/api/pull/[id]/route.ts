@@ -8,11 +8,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const { id } = await params
   const token = request.nextUrl.searchParams.get('token')
 
-  if (!await verifyToken(id, token)) {
+  if (!verifyToken(id, token)) {
     return NextResponse.json({ success: false, error: 'Invalid or expired session' }, { status: 401 })
   }
 
-  const session = await getSession(id)
+  const session = getSession(id)
   if (!session) {
     return NextResponse.json({ success: false, error: 'Session not found or expired' }, { status: 404 })
   }
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
   // Ready - return config and delete session
   const config = session.config
-  await deleteSession(id)
+  deleteSession(id)
 
   return NextResponse.json({
     success: true,
