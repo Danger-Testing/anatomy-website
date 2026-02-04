@@ -1,4 +1,5 @@
 import { AgentConfig } from '@/lib/types'
+import { Redis } from '@upstash/redis'
 
 export type SessionStatus = 'editing' | 'ready'
 
@@ -20,14 +21,13 @@ function sessionKey(id: string): string {
   return `session:${id}`
 }
 
-// Check if Vercel KV / Upstash Redis is available
-async function getKV() {
-  if (
-    (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) ||
-    (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
-  ) {
-    const { kv } = await import('@vercel/kv')
-    return kv
+// Get Redis client
+function getRedis(): Redis | null {
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    return new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    })
   }
   return null
 }
@@ -43,9 +43,9 @@ export async function createSession(id: string, token: string, config: AgentConf
     updatedAt: now,
   }
 
-  const kv = await getKV()
-  if (kv) {
-    await kv.set(sessionKey(id), session, { ex: SESSION_TTL_SECONDS })
+  const redis = getRedis()
+  if (redis) {
+    await redis.set(sessionKey(id), JSON.stringify(session), { ex: SESSION_TTL_SECONDS })
   } else {
     // Local dev: use memory store
     memoryStore.set(sessionKey(id), {
@@ -57,9 +57,11 @@ export async function createSession(id: string, token: string, config: AgentConf
 }
 
 export async function getSession(id: string): Promise<Session | null> {
-  const kv = await getKV()
-  if (kv) {
-    return await kv.get<Session>(sessionKey(id))
+  const redis = getRedis()
+  if (redis) {
+    const data = await redis.get<string>(sessionKey(id))
+    if (!data) return null
+    return typeof data === 'string' ? JSON.parse(data) : data
   }
 
   // Local dev: use memory store
@@ -85,9 +87,9 @@ export async function updateSessionConfig(id: string, config: AgentConfig): Prom
   session.config = config
   session.updatedAt = Date.now()
 
-  const kv = await getKV()
-  if (kv) {
-    await kv.set(sessionKey(id), session, { ex: SESSION_TTL_SECONDS })
+  const redis = getRedis()
+  if (redis) {
+    await redis.set(sessionKey(id), JSON.stringify(session), { ex: SESSION_TTL_SECONDS })
   } else {
     memoryStore.set(sessionKey(id), {
       session,
@@ -103,9 +105,9 @@ export async function markSessionReady(id: string): Promise<Session | null> {
   session.status = 'ready'
   session.updatedAt = Date.now()
 
-  const kv = await getKV()
-  if (kv) {
-    await kv.set(sessionKey(id), session, { ex: SESSION_TTL_SECONDS })
+  const redis = getRedis()
+  if (redis) {
+    await redis.set(sessionKey(id), JSON.stringify(session), { ex: SESSION_TTL_SECONDS })
   } else {
     memoryStore.set(sessionKey(id), {
       session,
@@ -116,9 +118,9 @@ export async function markSessionReady(id: string): Promise<Session | null> {
 }
 
 export async function deleteSession(id: string): Promise<boolean> {
-  const kv = await getKV()
-  if (kv) {
-    const result = await kv.del(sessionKey(id))
+  const redis = getRedis()
+  if (redis) {
+    const result = await redis.del(sessionKey(id))
     return result > 0
   }
 
