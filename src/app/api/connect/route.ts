@@ -3,7 +3,6 @@ import { AgentConfig } from '@/lib/types'
 import { generateToken, generateSessionId } from '@/lib/auth'
 import { createSession } from '@/lib/session-store'
 
-// POST /api/connect - Agent uploads its files to start an editing session
 export async function POST(request: NextRequest) {
   let body: { files?: Record<string, string> } = {}
 
@@ -24,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  createSession(sessionId, token, config)
+  await createSession(sessionId, token, config)
 
   const origin = request.nextUrl.origin
 

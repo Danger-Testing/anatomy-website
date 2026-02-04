@@ -1,3 +1,4 @@
+import { kv } from '@vercel/kv'
 import { AgentConfig } from '@/lib/types'
 
 export type SessionStatus = 'editing' | 'ready'
@@ -11,28 +12,13 @@ export type Session = {
   updatedAt: number
 }
 
-const SESSION_TTL_MS = 1000 * 60 * 30 // 30 minutes
+const SESSION_TTL_SECONDS = 60 * 30 // 30 minutes
 
-function getSessionMap(): Map<string, Session> {
-  const globalAny = globalThis as typeof globalThis & { __anatomySessions?: Map<string, Session> }
-  if (!globalAny.__anatomySessions) {
-    globalAny.__anatomySessions = new Map<string, Session>()
-  }
-  return globalAny.__anatomySessions
+function sessionKey(id: string): string {
+  return `session:${id}`
 }
 
-function pruneExpiredSessions() {
-  const sessions = getSessionMap()
-  const now = Date.now()
-  for (const [id, session] of sessions.entries()) {
-    if (now - session.createdAt > SESSION_TTL_MS) {
-      sessions.delete(id)
-    }
-  }
-}
-
-export function createSession(id: string, token: string, config: AgentConfig): Session {
-  pruneExpiredSessions()
+export async function createSession(id: string, token: string, config: AgentConfig): Promise<Session> {
   const now = Date.now()
   const session: Session = {
     id,
@@ -42,38 +28,40 @@ export function createSession(id: string, token: string, config: AgentConfig): S
     createdAt: now,
     updatedAt: now,
   }
-  getSessionMap().set(id, session)
+  await kv.set(sessionKey(id), session, { ex: SESSION_TTL_SECONDS })
   return session
 }
 
-export function getSession(id: string): Session | null {
-  pruneExpiredSessions()
-  return getSessionMap().get(id) || null
+export async function getSession(id: string): Promise<Session | null> {
+  return await kv.get<Session>(sessionKey(id))
 }
 
-export function verifyToken(id: string, token: string | null | undefined): boolean {
+export async function verifyToken(id: string, token: string | null | undefined): Promise<boolean> {
   if (!token) return false
-  const session = getSession(id)
+  const session = await getSession(id)
   if (!session) return false
   return session.token === token
 }
 
-export function updateSessionConfig(id: string, config: AgentConfig): Session | null {
-  const session = getSession(id)
+export async function updateSessionConfig(id: string, config: AgentConfig): Promise<Session | null> {
+  const session = await getSession(id)
   if (!session) return null
   session.config = config
   session.updatedAt = Date.now()
+  await kv.set(sessionKey(id), session, { ex: SESSION_TTL_SECONDS })
   return session
 }
 
-export function markSessionReady(id: string): Session | null {
-  const session = getSession(id)
+export async function markSessionReady(id: string): Promise<Session | null> {
+  const session = await getSession(id)
   if (!session) return null
   session.status = 'ready'
   session.updatedAt = Date.now()
+  await kv.set(sessionKey(id), session, { ex: SESSION_TTL_SECONDS })
   return session
 }
 
-export function deleteSession(id: string): boolean {
-  return getSessionMap().delete(id)
+export async function deleteSession(id: string): Promise<boolean> {
+  const result = await kv.del(sessionKey(id))
+  return result > 0
 }
