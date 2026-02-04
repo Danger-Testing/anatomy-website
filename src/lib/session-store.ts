@@ -11,7 +11,7 @@ export type Session = {
   updatedAt: number
 }
 
-const SESSION_TTL_SECONDS = 60 * 30 // 30 minutes
+const SESSION_TTL_SECONDS = 60 * 60 * 24 // 24 hours
 
 // In-memory store for local development
 const memoryStore = new Map<string, { session: Session; expiresAt: number }>()

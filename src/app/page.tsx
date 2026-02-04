@@ -76,7 +76,7 @@ export default function Home() {
         {/* No data stored */}
         <div className="text-center text-xs text-gray-400 font-mono">
           <p>no data stored on our servers</p>
-          <p>sessions expire after 30 minutes</p>
+          <p>sessions expire after 24 hours</p>
         </div>
       </div>
     </div>

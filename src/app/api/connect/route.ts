@@ -33,6 +33,6 @@ export async function POST(request: NextRequest) {
     token: token,
     editor_url: `${origin}/edit/${sessionId}?token=${token}`,
     pull_url: `${origin}/api/pull/${sessionId}`,
-    expires_in: '30 minutes'
+    expires_in: '24 hours'
   })
 }
