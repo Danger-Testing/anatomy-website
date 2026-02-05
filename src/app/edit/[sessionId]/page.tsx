@@ -7,6 +7,12 @@ import { BodyPart, DEFAULT_BODY_PARTS, AgentConfig } from '@/lib/types'
 
 type SessionStatus = 'loading' | 'editing' | 'ready' | 'error'
 
+interface SongSuggestion {
+  song: string
+  artist: string
+  reason: string
+}
+
 export default function Editor() {
   const params = useParams()
   const searchParams = useSearchParams()
@@ -27,6 +33,10 @@ export default function Editor() {
   // Zoom state
   const [zoomedPart, setZoomedPart] = useState<BodyPart | null>(null)
   const [isZooming, setIsZooming] = useState(false)
+
+  // Song suggestion state
+  const [suggestingSong, setSuggestingSong] = useState(false)
+  const [songSuggestion, setSongSuggestion] = useState<SongSuggestion | null>(null)
 
   // Load config on mount
   useEffect(() => {
@@ -127,6 +137,37 @@ export default function Editor() {
     )
   }
 
+  async function suggestSong() {
+    const identityContent = files['IDENTITY.md']
+    if (!identityContent || identityContent.trim() === '' || identityContent.trim() === '# Identity\n\n') {
+      setError('Add some identity content first')
+      return
+    }
+
+    setSuggestingSong(true)
+    setSongSuggestion(null)
+
+    try {
+      const res = await fetch('/api/suggest-song', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identity: identityContent })
+      })
+
+      const data = await res.json()
+
+      if (data.success) {
+        setSongSuggestion(data.suggestion)
+      } else {
+        setError(data.error || 'Failed to get song suggestion')
+      }
+    } catch {
+      setError('Failed to get song suggestion')
+    }
+
+    setSuggestingSong(false)
+  }
+
   // Loading state
   if (status === 'loading') {
     return (
@@ -213,6 +254,13 @@ export default function Editor() {
         <div className="flex items-center justify-between px-6 py-4">
           <div></div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={suggestSong}
+              disabled={suggestingSong}
+              className="text-black text-lg uppercase tracking-wider font-bold disabled:opacity-50"
+            >
+              {suggestingSong ? '...' : 'song'}
+            </button>
             <button
               onClick={saveConfig}
               disabled={saving}
@@ -341,6 +389,34 @@ export default function Editor() {
           </div>
         )}
       </div>
+
+      {/* Song suggestion modal */}
+      {songSuggestion && (
+        <div
+          className="fixed inset-0 z-[300] flex items-center justify-center bg-black/20"
+          onClick={() => setSongSuggestion(null)}
+        >
+          <div
+            className="bg-white border border-gray-200 p-8 max-w-md mx-4 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-xs uppercase tracking-widest text-gray-400 mb-4">
+              perfect song
+            </div>
+            <div className="text-2xl font-bold mb-1">{songSuggestion.song}</div>
+            <div className="text-lg text-gray-600 mb-4">{songSuggestion.artist}</div>
+            {songSuggestion.reason && (
+              <p className="text-sm text-gray-500 mb-6">{songSuggestion.reason}</p>
+            )}
+            <button
+              onClick={() => setSongSuggestion(null)}
+              className="text-black text-sm uppercase tracking-wider font-bold"
+            >
+              close
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Error toast */}
       {error && (
