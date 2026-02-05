@@ -48,7 +48,7 @@ export default function KhaledPage() {
       y: -15, // Start above screen
       rotation: Math.random() * 360,
       speed: 2 + Math.random() * 3,
-      delay: 1000,
+      delay: 1250,
     }
     setLobsters(prev => [...prev, newLobster])
   }, [])
