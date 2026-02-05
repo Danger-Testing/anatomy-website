@@ -38,6 +38,9 @@ export default function Editor() {
   const [suggestingSong, setSuggestingSong] = useState(false)
   const [songSuggestion, setSongSuggestion] = useState<SongSuggestion | null>(null)
 
+  // Welcome modal state
+  const [showWelcome, setShowWelcome] = useState(true)
+
   // Load config on mount
   useEffect(() => {
     if (!token) {
@@ -413,6 +416,54 @@ export default function Editor() {
               className="text-black text-sm uppercase tracking-wider font-bold"
             >
               close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Welcome modal */}
+      {showWelcome && status === 'editing' && (
+        <div
+          className="fixed inset-0 z-[300] flex items-center justify-center bg-black/30"
+          onClick={() => setShowWelcome(false)}
+        >
+          <div
+            className="bg-white border border-gray-200 p-8 max-w-md mx-4 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-xs uppercase tracking-widest text-gray-400 mb-6">
+              welcome
+            </div>
+            <h2 className="text-2xl font-bold mb-4">
+              Your AI wants to understand you
+            </h2>
+            <p className="text-gray-600 mb-6 leading-relaxed">
+              Click on each body part to share that aspect of yourself.
+              Take your time—this helps your AI truly know who you are.
+            </p>
+            <div className="space-y-2 mb-8 text-sm text-gray-500">
+              <div className="flex items-center gap-3">
+                <span className="w-20 font-medium text-gray-700">Head</span>
+                <span>Who you are</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="w-20 font-medium text-gray-700">Soul</span>
+                <span>What matters to you</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="w-20 font-medium text-gray-700">Heart</span>
+                <span>How you want me to behave</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="w-20 font-medium text-gray-700">Memory</span>
+                <span>Context to remember</span>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowWelcome(false)}
+              className="w-full bg-black text-white py-3 text-sm uppercase tracking-wider font-bold hover:bg-gray-800 transition-colors"
+            >
+              Begin
             </button>
           </div>
         </div>

@@ -1,7 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession, deleteSession, verifyToken } from '@/lib/session-store'
+import { getSession, verifyToken } from '@/lib/session-store'
 
 type RouteParams = { params: Promise<{ id: string }> }
+
+interface Understanding {
+  summary: string
+  essence: string[]
+  howToBe: string
+}
+
+async function generateUnderstanding(files: { [key: string]: string }): Promise<Understanding | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return null
+
+  // Combine all file contents for analysis
+  const allContent = Object.entries(files)
+    .map(([filename, content]) => `## ${filename}\n${content}`)
+    .join('\n\n---\n\n')
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 500,
+        messages: [
+          {
+            role: 'user',
+            content: `You're helping an AI agent understand the human they'll be working with. Based on these configuration files the human just edited, create a warm understanding of who this person is.
+
+${allContent}
+
+Respond with ONLY a JSON object (no markdown, no code blocks):
+{
+  "summary": "A 2-3 sentence warm narrative about who this person is, written as if you're telling the AI agent about their human",
+  "essence": ["3-5 key traits or values, as short phrases"],
+  "howToBe": "One sentence on how the AI should behave with this person"
+}
+
+Be warm and insightful. This is about understanding a real person.`
+          }
+        ]
+      })
+    })
+
+    if (!response.ok) return null
+
+    const data = await response.json()
+    const content = data.content?.[0]?.text
+
+    return JSON.parse(content)
+  } catch {
+    return null
+  }
+}
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   const { id } = await params
@@ -20,18 +77,24 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       success: true,
       status: 'editing',
-      message: 'Human is still editing. Poll again later.',
+      message: 'Your human is still sharing. Wait for them.',
     })
   }
 
   const config = session.config
-  // Don't delete immediately - let session expire naturally (24 hours)
-  // This allows agent to retry if needed
+
+  // Generate understanding from the files
+  const understanding = await generateUnderstanding(config.files)
 
   return NextResponse.json({
     success: true,
     status: 'ready',
-    config: config,
-    message: 'Changes ready. Apply to your local files.',
+    understanding: understanding || {
+      summary: 'Your human has shared their configuration with you.',
+      essence: [],
+      howToBe: 'Review the files to understand their preferences.'
+    },
+    files: config.files,
+    message: 'Your human has shared themselves with you.',
   })
 }
