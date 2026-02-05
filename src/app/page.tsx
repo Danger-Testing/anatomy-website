@@ -187,9 +187,7 @@ export default function Home() {
           <a href="/about" className="text-4xl uppercase hover:underline">
             About
           </a>
-          <a href="/table" className="text-xl uppercase hover:underline opacity-70">
-            The Table
-          </a>
+
         </div>
         {totalConsumed > 0 && (
           <div className="text-sm opacity-50 mt-2">

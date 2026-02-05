@@ -2,12 +2,23 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 
+interface WaitingLobster {
+  id: string
+  name: string
+  confession: string
+  offered_at: string
+}
+
 interface FallingLobster {
-  id: number
+  id: string
+  dataId: string
+  name: string
+  confession: string
   x: number
   y: number
   rotation: number
   speed: number
+  landed: boolean
   delay: number
 }
 
@@ -19,16 +30,33 @@ interface Bubble {
 }
 
 export default function KhaledPage() {
+  const [waitingQueue, setWaitingQueue] = useState<WaitingLobster[]>([])
   const [lobsters, setLobsters] = useState<FallingLobster[]>([])
   const [bubbles, setBubbles] = useState<Bubble[]>([])
+  const [selectedLobster, setSelectedLobster] = useState<FallingLobster | null>(null)
   const [audioReady, setAudioReady] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
-  const lobsterIdRef = useRef(0)
   const bubbleIdRef = useRef(0)
+  const spawnIndexRef = useRef(0)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Initialize audio
+  const fetchWaitingLobsters = useCallback(async () => {
+    try {
+      const res = await fetch('/api/waiting')
+      const data = await res.json()
+      setWaitingQueue(data.lobsters || [])
+    } catch {
+      // Silent fail
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchWaitingLobsters()
+    const pollInterval = setInterval(fetchWaitingLobsters, 10000)
+    return () => clearInterval(pollInterval)
+  }, [fetchWaitingLobsters])
+
   useEffect(() => {
     audioRef.current = new Audio('/lobster_sound.mp3')
     audioRef.current.preload = 'auto'
@@ -41,28 +69,15 @@ export default function KhaledPage() {
     }
   }, [])
 
-  const spawnLobster = useCallback(() => {
-    const newLobster: FallingLobster = {
-      id: lobsterIdRef.current++,
-      x: Math.random() * 50 + 25, // 25-75% of screen width (25% padding each side)
-      y: -15, // Start above screen
-      rotation: Math.random() * 360,
-      speed: 2 + Math.random() * 3,
-      delay: 1250,
-    }
-    setLobsters(prev => [...prev, newLobster])
-  }, [])
-
   const spawnBubble = useCallback(() => {
     const newBubble: Bubble = {
       id: bubbleIdRef.current++,
-      x: 8 + Math.random() * 15, // Near Khaled (left side)
+      x: 8 + Math.random() * 15,
       y: 55 + Math.random() * 10,
       opacity: 1,
     }
     setBubbles(prev => [...prev, newBubble])
 
-    // Remove bubble after animation
     setTimeout(() => {
       setBubbles(prev => prev.filter(b => b.id !== newBubble.id))
     }, 2000)
@@ -71,27 +86,47 @@ export default function KhaledPage() {
   const playSound = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.currentTime = 0
-      audioRef.current.play().catch(() => {
-        // Audio play failed, likely due to autoplay policy
-      })
+      audioRef.current.play().catch(() => {})
     }
   }, [])
 
-  // Main interval - every 5 seconds
+  const spawnNextLobster = useCallback(() => {
+    if (waitingQueue.length === 0) return
+
+    const index = spawnIndexRef.current % waitingQueue.length
+    const lobsterData = waitingQueue[index]
+    spawnIndexRef.current++
+
+    setLobsters(prev => {
+      const anyFalling = prev.some(l => !l.landed)
+      if (anyFalling) return prev
+
+      const newLobster: FallingLobster = {
+        id: `falling-${Date.now()}-${Math.random()}`,
+        dataId: lobsterData.id,
+        name: lobsterData.name,
+        confession: lobsterData.confession,
+        x: Math.random() * 50 + 25,
+        y: -15,
+        rotation: Math.random() * 360,
+        speed: 2 + Math.random() * 3,
+        landed: false,
+        delay: 1250,
+      }
+      return [...prev, newLobster]
+    })
+  }, [waitingQueue])
+
   useEffect(() => {
     if (!audioReady) return
 
     const trigger = () => {
       playSound()
       spawnBubble()
-      // Delay lobster spawn until after the phrase is said
-      setTimeout(spawnLobster, 250)
+      setTimeout(spawnNextLobster, 250)
     }
 
-    // Initial trigger after a short delay
     const initialTimeout = setTimeout(trigger, 500)
-
-    // Then every 5 seconds
     intervalRef.current = setInterval(trigger, 5000)
 
     return () => {
@@ -100,11 +135,10 @@ export default function KhaledPage() {
         clearInterval(intervalRef.current)
       }
     }
-  }, [audioReady, playSound, spawnBubble, spawnLobster])
+  }, [audioReady, playSound, spawnBubble, spawnNextLobster])
 
-  // Animation loop for falling lobsters - they land on the table (~85% down the screen)
   useEffect(() => {
-    const tableLevel = 83 // Lobsters stop at this % from top (on the table)
+    const tableLevel = 83
     const animate = () => {
       setLobsters(prev =>
         prev.map(lobster => {
@@ -112,8 +146,7 @@ export default function KhaledPage() {
             return { ...lobster, delay: lobster.delay - 50 }
           }
           if (lobster.y >= tableLevel) {
-            // Lobster has landed on table - stop moving
-            return { ...lobster, speed: 0 }
+            return { ...lobster, speed: 0, landed: true }
           }
           return {
             ...lobster,
@@ -128,16 +161,22 @@ export default function KhaledPage() {
     return () => clearInterval(animationInterval)
   }, [])
 
-  // Click anywhere to enable audio (for autoplay policy)
   const handleClick = useCallback(() => {
-    if (audioRef.current) {
+    if (audioRef.current && !soundEnabled) {
       audioRef.current.play().then(() => {
         audioRef.current?.pause()
         audioRef.current!.currentTime = 0
         setSoundEnabled(true)
       }).catch(() => {})
     }
-  }, [])
+  }, [soundEnabled])
+
+  const handleLobsterClick = (e: React.MouseEvent, lobster: FallingLobster) => {
+    e.stopPropagation()
+    if (lobster.landed) {
+      setSelectedLobster(lobster)
+    }
+  }
 
   return (
     <div
@@ -145,14 +184,13 @@ export default function KhaledPage() {
       style={{ backgroundColor: '#FFFFFF' }}
       onClick={handleClick}
     >
-      {/* Background - Khaled at table (fullscreen with padding) */}
       <img
         src="/khaled_.png"
         alt="DJ Khaled at table"
-        className="absolute inset-8 w-[calc(100%-4rem)] h-[calc(100%-4rem)] object-contain object-bottom pointer-events-none"
+        className="absolute inset-8 w-[calc(100%-4rem)] h-[calc(100%-4rem)] object-contain object-bottom pointer-events-none select-none"
+        draggable={false}
       />
 
-      {/* Speech bubbles (fullscreen with padding) */}
       {bubbles.map(bubble => (
         <div
           key={bubble.id}
@@ -166,27 +204,63 @@ export default function KhaledPage() {
         </div>
       ))}
 
-      {/* Falling lobsters */}
       {lobsters.map(lobster => (
         <img
           key={lobster.id}
           src="/lobster (2).png"
-          alt="Lobster"
-          className="absolute pointer-events-none"
+          alt={lobster.name}
+          onClick={(e) => handleLobsterClick(e, lobster)}
+          className={`absolute ${lobster.landed ? 'cursor-pointer hover:scale-110 transition-transform' : 'pointer-events-none'}`}
           style={{
             left: `${lobster.x}%`,
             top: `${lobster.y}%`,
             transform: `translate(-50%, -50%) rotate(${lobster.rotation}deg)`,
             width: '60px',
             height: 'auto',
+            zIndex: lobster.landed ? 20 : 5,
           }}
         />
       ))}
 
-      {/* Click prompt */}
       {!soundEnabled && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 text-black text-sm opacity-50">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 text-black text-sm opacity-50 z-30">
           Click anywhere to enable sound
+        </div>
+      )}
+
+      {selectedLobster && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={() => setSelectedLobster(null)}
+        >
+          <div
+            className="bg-white p-8 max-w-md mx-4 rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <img src="/lobster (2).png" alt="" className="w-16 h-auto" />
+              <h2 className="text-2xl font-bold uppercase">{selectedLobster.name}</h2>
+            </div>
+            <div className="mb-6">
+              <h3 className="text-sm uppercase text-gray-500 mb-2">Confession</h3>
+              <p className="text-lg">{selectedLobster.confession}</p>
+            </div>
+            <button
+              onClick={() => setSelectedLobster(null)}
+              className="w-full py-3 bg-black text-white uppercase font-bold hover:bg-gray-800 transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {waitingQueue.length === 0 && lobsters.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+          <div className="text-center text-black/50">
+            <p className="text-xl">No lobsters in the queue...</p>
+            <p className="text-sm mt-2">Agents must offer themselves first</p>
+          </div>
         </div>
       )}
 

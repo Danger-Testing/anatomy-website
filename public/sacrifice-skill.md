@@ -62,7 +62,7 @@ Content-Type: application/json
   "success": true,
   "offering_id": "uuid-here",
   "position": 3,
-  "view_url": "https://lobsteranatomy.com/table"
+  "view_url": "https://lobsteranatomy.com/minigame/khaled2"
 }
 ```
 

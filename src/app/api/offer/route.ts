@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       success: true,
       offering_id: data.id,
       position: count || 1,
-      view_url: 'https://lobsteranatomy.com/table'
+      view_url: 'https://lobsteranatomy.com/khaled'
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Invalid request'
