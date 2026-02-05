@@ -30,6 +30,26 @@ export function TraitEditor({
   const [availableTraits, setAvailableTraits] = useState<Trait[]>(parsedTraits.available)
   const [draggedTrait, setDraggedTrait] = useState<Trait | null>(null)
   const [showPlaintext, setShowPlaintext] = useState(false)
+  const [selectedCharacter, setSelectedCharacter] = useState<string | null>(null)
+
+  // Character list
+  const characters = [
+    { id: 'bernie', label: 'Bernie', emoji: '💯' },
+    { id: 'rubin', label: 'Rubin', emoji: '🦶' },
+    { id: 'bowie', label: 'Bowie', emoji: '⚡' },
+    { id: 'jobs', label: 'Jobs', emoji: '🍎' },
+    { id: 'summer', label: 'Summer', emoji: '🌸' },
+    { id: 'chanel', label: 'Chanel', emoji: '👗' },
+    { id: 'machiavelli', label: 'Mach', emoji: '♟️' }
+  ]
+
+  // Filter available traits based on selected character
+  const filteredAvailableTraits = selectedCharacter
+    ? availableTraits.filter(trait =>
+        trait.label.toLowerCase().includes(selectedCharacter) ||
+        trait.id.includes(selectedCharacter)
+      )
+    : availableTraits
 
   const handleDragStart = (trait: Trait) => {
     setDraggedTrait(trait)
@@ -113,10 +133,10 @@ export function TraitEditor({
               onDrop={handleDropOnAvailable}
             >
               <div className="uppercase text-sm tracking-widest mb-6 text-gray-500">
-                Available Traits
+                Available Traits {selectedCharacter && `(${selectedCharacter})`}
               </div>
               <div className="space-y-3">
-                {availableTraits.map(trait => (
+                {filteredAvailableTraits.map(trait => (
                   <TraitBox
                     key={trait.id}
                     trait={trait}
@@ -153,18 +173,42 @@ export function TraitEditor({
 
         {/* Footer */}
         <div className="p-6 border-t-4 border-black flex justify-between items-center">
-          <button
-            onClick={() => setShowPlaintext(!showPlaintext)}
-            className="text-black text-sm uppercase tracking-wider font-bold hover:underline"
-          >
-            {showPlaintext ? '← back to traits' : 'view plaintext'}
-          </button>
-          <button
-            onClick={handleSave}
-            className="text-black text-xl uppercase tracking-wider font-bold hover:bg-black hover:text-white px-6 py-2 border-2 border-black transition-colors"
-          >
-            save changes
-          </button>
+          {/* Character filters on left */}
+          <div className="flex gap-2 items-center">
+            {characters.map(char => (
+              <button
+                key={char.id}
+                onClick={() => setSelectedCharacter(
+                  selectedCharacter === char.id ? null : char.id
+                )}
+                className={`px-3 py-1 text-xs uppercase tracking-wider font-bold border-2 border-black transition-all ${
+                  selectedCharacter === char.id
+                    ? 'bg-black text-white'
+                    : selectedCharacter
+                    ? 'bg-gray-200 text-gray-400 border-gray-300'
+                    : 'bg-white text-black hover:bg-gray-100'
+                }`}
+              >
+                {char.emoji} {char.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Actions on right */}
+          <div className="flex gap-4 items-center">
+            <button
+              onClick={() => setShowPlaintext(!showPlaintext)}
+              className="text-black text-sm uppercase tracking-wider font-bold hover:underline"
+            >
+              {showPlaintext ? '← back to traits' : 'view plaintext'}
+            </button>
+            <button
+              onClick={handleSave}
+              className="text-black text-xl uppercase tracking-wider font-bold hover:bg-black hover:text-white px-6 py-2 border-2 border-black transition-colors"
+            >
+              save changes
+            </button>
+          </div>
         </div>
       </div>
     </div>
