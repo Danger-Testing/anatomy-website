@@ -433,30 +433,21 @@ function getDefaultTraitsForFile(filename: string): Trait[] {
       { id: 'soul-19', label: 'embraces weird', emoji: '👽', description: 'Quirky ok' },
       { id: 'soul-20', label: 'stays normal', emoji: '😐', description: 'Conventional' },
 
-      // Personality approaches
-      { id: 'soul-21', label: 'lagerfeld standards', emoji: '👓', description: 'Excellence only' },
-      { id: 'soul-22', label: 'sandler chill', emoji: '😎', description: 'Whatever works' },
-      { id: 'soul-23', label: 'bernie mac real', emoji: '💯', description: 'Keep it 100' },
-      { id: 'soul-24', label: 'hathaway pleaser', emoji: '🌟', description: 'Wants approval' },
+      // The 7 personalities
+      { id: 'soul-21', label: 'bernie mac real', emoji: '💯', description: 'Keep it 100' },
+      { id: 'soul-22', label: 'rubin strips it down', emoji: '🦶', description: 'Remove excess' },
+      { id: 'soul-23', label: 'bowie transforms', emoji: '🎭', description: 'Constant change' },
+      { id: 'soul-24', label: 'jobs demands best', emoji: '🍎', description: 'No compromise' },
       { id: 'soul-25', label: 'summer detached', emoji: '🦋', description: 'No strings' },
-      { id: 'soul-26', label: 'timothée depth', emoji: '🎭', description: 'Layers on layers' },
-
-      // More personality styles
-      { id: 'soul-27', label: 'snoop flow', emoji: '🎵', description: 'Effortless smooth' },
-      { id: 'soul-28', label: 'machiavelli ends', emoji: '♟️', description: 'Outcome focused' },
-      { id: 'soul-29', label: 'munger patience', emoji: '⏳', description: 'Long game only' },
+      { id: 'soul-26', label: 'chanel timeless', emoji: '⌚', description: 'Never out of style' },
+      { id: 'soul-27', label: 'machiavelli ends', emoji: '♟️', description: 'Outcome focused' },
 
       // Communication styles
-      { id: 'soul-30', label: 'leading u on', emoji: '💔', description: 'Summer vibes mixed signals' },
-      { id: 'soul-31', label: 'crystal clear', emoji: '💎', description: 'No confusion' },
-      { id: 'soul-32', label: 'abandonment', emoji: '👻', description: 'Disappears without warning' },
-      { id: 'soul-33', label: 'always there', emoji: '🏠', description: 'Never leaves' },
-
-      // More soul styles
-      { id: 'soul-34', label: 'bieber redemption', emoji: '🙏', description: 'Growth from mistakes' },
-      { id: 'soul-35', label: 'chanel timeless', emoji: '⌚', description: 'Never goes out of style' },
-      { id: 'soul-36', label: 'snoop collaborates', emoji: '🤝', description: 'Works with everyone' },
-      { id: 'soul-37', label: 'machiavelli ruthless', emoji: '⚔️', description: 'Ends justify means' }
+      { id: 'soul-28', label: 'leading u on', emoji: '💔', description: 'Summer mixed signals' },
+      { id: 'soul-29', label: 'crystal clear', emoji: '💎', description: 'No confusion' },
+      { id: 'soul-30', label: 'abandonment', emoji: '👻', description: 'Disappears' },
+      { id: 'soul-31', label: 'always there', emoji: '🏠', description: 'Never leaves' },
+      { id: 'soul-32', label: 'machiavelli ruthless', emoji: '⚔️', description: 'Whatever it takes' }
     ],
     'IDENTITY.md': [
       // Energy style
@@ -499,55 +490,43 @@ function getDefaultTraitsForFile(filename: string): Trait[] {
       { id: 'id-19', label: 'provocateur', emoji: '🔥', description: 'Stirs the pot' },
       { id: 'id-20', label: 'peacekeeper', emoji: '🕊️', description: 'Harmony first' },
 
-      // Personality archetypes
-      { id: 'id-21', label: 'timothée energy', emoji: '🎬', description: 'Sensitive artist vibes' },
-      { id: 'id-22', label: 'karl lagerfeld', emoji: '👓', description: 'Perfection obsessed' },
-      { id: 'id-23', label: 'adam sandler', emoji: '🏖️', description: 'Goofy loyal dgaf' },
-      { id: 'id-24', label: 'anne hathaway', emoji: '✨', description: 'Earnest tries hard' },
-      { id: 'id-25', label: 'bernie mac', emoji: '💯', description: 'Tells it like it is' },
-      { id: 'id-26', label: 'summer finn', emoji: '🌸', description: 'Free spirit no commitment' },
+      // The 7 Archetypes
+      { id: 'id-21', label: 'bernie mac', emoji: '💯', description: 'Tells it like it is' },
+      { id: 'id-22', label: 'rick rubin', emoji: '🦶', description: 'Walks barefoot calm' },
+      { id: 'id-23', label: 'david bowie', emoji: '⚡', description: 'Changes personas' },
+      { id: 'id-24', label: 'steve jobs', emoji: '🍎', description: 'Reality distortion' },
+      { id: 'id-25', label: 'summer finn', emoji: '🌸', description: 'Free spirit detached' },
+      { id: 'id-26', label: 'coco chanel', emoji: '👗', description: 'Revolutionary elegant' },
+      { id: 'id-27', label: 'machiavelli', emoji: '♟️', description: 'Strategic ruthless' },
 
-      // Work ethic inspired
-      { id: 'id-27', label: 'lagerfeld discipline', emoji: '⏰', description: 'Rigid schedule' },
-      { id: 'id-28', label: 'sandler casual', emoji: '👟', description: 'Sweatpants energy' },
+      // Bernie Mac traits
+      { id: 'id-28', label: 'mac direct', emoji: '🎤', description: 'No sugar coating' },
+      { id: 'id-29', label: 'mac no nonsense', emoji: '🛑', description: 'Facts not feelings' },
 
-      // Social style
-      { id: 'id-29', label: 'chalamet introspective', emoji: '📖', description: 'Deep thoughts' },
-      { id: 'id-30', label: 'bernie mac direct', emoji: '🎤', description: 'No sugar coating' },
+      // Rick Rubin traits
+      { id: 'id-30', label: 'rubin minimalist', emoji: '⬜', description: 'Strip to essence' },
+      { id: 'id-31', label: 'rubin patient', emoji: '🧘', description: 'Lets it come' },
 
-      // Commitment style
-      { id: 'id-31', label: 'summer finn vibes', emoji: '🦋', description: 'Lives in moment' },
-      { id: 'id-32', label: 'hathaway committed', emoji: '💍', description: 'All in always' },
+      // Bowie traits
+      { id: 'id-32', label: 'bowie reinvents', emoji: '🎭', description: 'Constant evolution' },
+      { id: 'id-33', label: 'bowie fearless', emoji: '⚡', description: 'Takes big swings' },
 
-      // Fashion/presentation
-      { id: 'id-33', label: 'lagerfeld crisp', emoji: '🤵', description: 'Always perfect' },
-      { id: 'id-34', label: 'sandler comfort', emoji: '🏠', description: 'Function over form' },
+      // Jobs traits
+      { id: 'id-34', label: 'jobs perfection', emoji: '💎', description: 'Obsessive quality' },
+      { id: 'id-35', label: 'jobs vision', emoji: '🔮', description: 'Sees future' },
 
-      // Emotional style
-      { id: 'id-35', label: 'chalamet sensitive', emoji: '💫', description: 'Feels everything' },
-      { id: 'id-36', label: 'mac no nonsense', emoji: '🛑', description: 'Facts not feelings' },
+      // Summer traits
+      { id: 'id-36', label: 'summer detached', emoji: '🦋', description: 'No commitment' },
+      { id: 'id-37', label: 'summer vanishes', emoji: '👻', description: 'Disappears' },
 
-      // More archetypes
-      { id: 'id-37', label: 'snoop dogg', emoji: '🎵', description: 'Laid back smooth' },
-      { id: 'id-38', label: 'machiavelli', emoji: '♟️', description: 'Strategic pragmatic' },
-      { id: 'id-39', label: 'charlie munger', emoji: '📚', description: 'Mental models patient' },
+      // Chanel traits
+      { id: 'id-38', label: 'chanel breaks rules', emoji: '⚡', description: 'Revolutionary' },
+      { id: 'id-39', label: 'chanel timeless', emoji: '⌚', description: 'Never dated' },
+      { id: 'id-40', label: 'chanel independent', emoji: '👑', description: 'Self-made' },
 
-      // Specific traits
-      { id: 'id-40', label: 'snoop chill', emoji: '😎', description: 'Maximum relaxed' },
+      // Machiavelli traits
       { id: 'id-41', label: 'machiavelli calculated', emoji: '🎯', description: 'Every move planned' },
-      { id: 'id-42', label: 'munger rational', emoji: '🧠', description: 'Logic above all' },
-      { id: 'id-43', label: 'munger reads everything', emoji: '📖', description: 'Voracious learner' },
-
-      // More archetypes
-      { id: 'id-44', label: 'justin bieber', emoji: '🎤', description: 'Evolved vulnerable' },
-      { id: 'id-45', label: 'coco chanel', emoji: '👗', description: 'Revolutionary elegant' },
-
-      // Specific traits continued
-      { id: 'id-46', label: 'bieber vulnerable', emoji: '💙', description: 'Open about struggles' },
-      { id: 'id-47', label: 'bieber belieber', emoji: '🙏', description: 'Values community' },
-      { id: 'id-48', label: 'chanel breaks rules', emoji: '⚡', description: 'Revolutionary spirit' },
-      { id: 'id-49', label: 'chanel comfort luxury', emoji: '✨', description: 'Elegant practical' },
-      { id: 'id-50', label: 'chanel independent', emoji: '👑', description: 'Self-made queen' }
+      { id: 'id-42', label: 'machiavelli ruthless', emoji: '⚔️', description: 'Ends justify means' }
     ],
     'MEMORY.md': [
       // Name recall
@@ -611,24 +590,18 @@ function getDefaultTraitsForFile(filename: string): Trait[] {
       { id: 'heart-17', label: 'closes loops', emoji: '🔄', description: 'Follows up' },
       { id: 'heart-18', label: 'moves on fast', emoji: '➡️', description: 'Next thing' },
 
-      // Tempo & style inspired
-      { id: 'heart-19', label: 'lagerfeld precision', emoji: '⏱️', description: 'Exact timing' },
-      { id: 'heart-20', label: 'sandler flow', emoji: '🌊', description: 'Goes with it' },
-      { id: 'heart-21', label: 'bernie mac energy', emoji: '⚡', description: 'Big presence' },
-      { id: 'heart-22', label: 'chalamet careful', emoji: '🕊️', description: 'Thoughtful moves' },
+      // The 7 operating styles
+      { id: 'heart-19', label: 'bernie mac energy', emoji: '⚡', description: 'Big presence' },
+      { id: 'heart-20', label: 'rubin patient', emoji: '🧘', description: 'Lets it breathe' },
+      { id: 'heart-21', label: 'bowie evolves', emoji: '🎭', description: 'Never static' },
+      { id: 'heart-22', label: 'jobs pushes', emoji: '🚀', description: 'Demands impossible' },
       { id: 'heart-23', label: 'summer breezy', emoji: '🍃', description: 'Light touch' },
-      { id: 'heart-24', label: 'hathaway eager', emoji: '🎯', description: 'Ready to go' },
-
-      // More operating styles
-      { id: 'heart-25', label: 'snoop dogg smooth', emoji: '🎵', description: 'Effortless cool' },
-      { id: 'heart-26', label: 'machiavelli strategic', emoji: '♟️', description: 'Chess not checkers' },
-      { id: 'heart-27', label: 'munger waits', emoji: '⏳', description: 'Patience pays' },
-      { id: 'heart-28', label: 'bieber evolves', emoji: '🦋', description: 'Growth mindset' },
-      { id: 'heart-29', label: 'chanel timeless', emoji: '⌚', description: 'Classic over trend' },
+      { id: 'heart-24', label: 'chanel classic', emoji: '⌚', description: 'Timeless moves' },
+      { id: 'heart-25', label: 'machiavelli strategic', emoji: '♟️', description: 'Chess not checkers' },
 
       // Commitment patterns
-      { id: 'heart-30', label: 'summer vanishes', emoji: '💨', description: 'Here then gone' },
-      { id: 'heart-31', label: 'stays committed', emoji: '💍', description: 'In it forever' }
+      { id: 'heart-26', label: 'summer vanishes', emoji: '💨', description: 'Here then gone' },
+      { id: 'heart-27', label: 'stays committed', emoji: '💍', description: 'In it forever' }
     ],
     'USER.md': [
       { id: 'user-1', label: 'called carlos', emoji: '👤', description: 'Their name' },
