@@ -25,7 +25,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 
   const config = session.config
-  await deleteSession(id)
+  // Don't delete immediately - let session expire naturally (24 hours)
+  // This allows agent to retry if needed
 
   return NextResponse.json({
     success: true,
