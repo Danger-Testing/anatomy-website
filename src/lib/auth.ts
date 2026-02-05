@@ -5,5 +5,5 @@ export function generateToken(): string {
 }
 
 export function generateSessionId(): string {
-  return randomBytes(8).toString('hex')
+  return randomBytes(16).toString('hex') // 128-bit entropy
 }

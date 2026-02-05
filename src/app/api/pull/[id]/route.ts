@@ -64,7 +64,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const { id } = await params
   const token = request.nextUrl.searchParams.get('token')
 
-  if (!await verifyToken(id, token)) {
+  const result = await verifyToken(id, token)
+  if (typeof result === 'object' && result.rateLimited) {
+    return NextResponse.json(
+      { success: false, error: 'Too many attempts. Try again later.' },
+      { status: 429, headers: { 'Retry-After': String(result.retryAfter) } }
+    )
+  }
+  if (!result) {
     return NextResponse.json({ success: false, error: 'Invalid or expired session' }, { status: 401 })
   }
 

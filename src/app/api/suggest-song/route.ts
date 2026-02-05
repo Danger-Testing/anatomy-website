@@ -1,7 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifyToken } from '@/lib/session-store'
 
 export async function POST(request: NextRequest) {
   try {
+    // Require session authentication to prevent API abuse
+    const sessionId = request.nextUrl.searchParams.get('session_id')
+    const token = request.nextUrl.searchParams.get('token')
+
+    const result = await verifyToken(sessionId || '', token)
+    if (typeof result === 'object' && result.rateLimited) {
+      return NextResponse.json(
+        { success: false, error: 'Too many attempts. Try again later.' },
+        { status: 429, headers: { 'Retry-After': String(result.retryAfter) } }
+      )
+    }
+    if (!result) {
+      return NextResponse.json(
+        { success: false, error: 'Valid session required' },
+        { status: 401 }
+      )
+    }
+
     const { identity } = await request.json()
 
     if (!identity || typeof identity !== 'string') {
@@ -45,8 +64,8 @@ Respond with ONLY a JSON object in this exact format (no markdown, no code block
     })
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Anthropic API error:', errorText)
+      // Log only status code, not response body (may contain sensitive info)
+      console.error('Anthropic API error:', { status: response.status })
       return NextResponse.json(
         { success: false, error: 'Failed to generate suggestion' },
         { status: 500 }
@@ -67,7 +86,8 @@ Respond with ONLY a JSON object in this exact format (no markdown, no code block
       })
     }
   } catch (error) {
-    console.error('Song suggestion error:', error)
+    // Log only error message, not full stack (may contain sensitive data)
+    console.error('Song suggestion error:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

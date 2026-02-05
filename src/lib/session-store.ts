@@ -1,7 +1,46 @@
 import { AgentConfig } from '@/lib/types'
 import { Redis } from '@upstash/redis'
+import { timingSafeEqual } from 'crypto'
 
 export type SessionStatus = 'editing' | 'ready'
+
+// Rate limiting: max attempts per session ID per window
+const RATE_LIMIT_WINDOW_MS = 60 * 1000 // 1 minute
+const RATE_LIMIT_MAX_ATTEMPTS = 5
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>()
+
+// Periodic cleanup of expired rate limit entries (every 5 minutes)
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000
+setInterval(() => {
+  const now = Date.now()
+  for (const [key, entry] of rateLimitStore.entries()) {
+    if (now > entry.resetAt) {
+      rateLimitStore.delete(key)
+    }
+  }
+  // Also cleanup expired sessions in memory store
+  for (const [key, entry] of memoryStore.entries()) {
+    if (now > entry.expiresAt) {
+      memoryStore.delete(key)
+    }
+  }
+}, CLEANUP_INTERVAL_MS)
+
+// Validate session ID format (32 hex chars = 128 bits)
+export function isValidSessionId(id: string): boolean {
+  return typeof id === 'string' && /^[a-f0-9]{32}$/.test(id)
+}
+
+// Constant-time string comparison to prevent timing attacks
+function secureCompare(a: string, b: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string') return false
+  if (a.length !== b.length) return false
+  try {
+    return timingSafeEqual(Buffer.from(a), Buffer.from(b))
+  } catch {
+    return false
+  }
+}
 
 export type Session = {
   id: string
@@ -12,7 +51,7 @@ export type Session = {
   updatedAt: number
 }
 
-const SESSION_TTL_SECONDS = 60 * 60 * 24 // 24 hours
+const SESSION_TTL_SECONDS = 60 * 15 // 15 minutes
 
 // In-memory store for local development
 const memoryStore = new Map<string, { session: Session; expiresAt: number }>()
@@ -57,6 +96,9 @@ export async function createSession(id: string, token: string, config: AgentConf
 }
 
 export async function getSession(id: string): Promise<Session | null> {
+  // Validate session ID format to prevent injection
+  if (!isValidSessionId(id)) return null
+
   const redis = getRedis()
   if (redis) {
     const data = await redis.get<string>(sessionKey(id))
@@ -74,11 +116,46 @@ export async function getSession(id: string): Promise<Session | null> {
   return entry.session
 }
 
-export async function verifyToken(id: string, token: string | null | undefined): Promise<boolean> {
+export function checkRateLimit(id: string): { allowed: boolean; retryAfter?: number } {
+  const now = Date.now()
+  const key = `ratelimit:${id}`
+  const entry = rateLimitStore.get(key)
+
+  // Clean up expired entry
+  if (entry && now > entry.resetAt) {
+    rateLimitStore.delete(key)
+  }
+
+  const current = rateLimitStore.get(key)
+  if (!current) {
+    rateLimitStore.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS })
+    return { allowed: true }
+  }
+
+  if (current.count >= RATE_LIMIT_MAX_ATTEMPTS) {
+    return { allowed: false, retryAfter: Math.ceil((current.resetAt - now) / 1000) }
+  }
+
+  current.count++
+  return { allowed: true }
+}
+
+export async function verifyToken(id: string, token: string | null | undefined): Promise<boolean | { rateLimited: true; retryAfter: number }> {
+  // Validate session ID format first
+  if (!isValidSessionId(id)) return false
+
+  // Check rate limit before verification
+  const rateLimit = checkRateLimit(id)
+  if (!rateLimit.allowed) {
+    return { rateLimited: true, retryAfter: rateLimit.retryAfter! }
+  }
+
   if (!token) return false
   const session = await getSession(id)
   if (!session) return false
-  return session.token === token
+
+  // Use constant-time comparison to prevent timing attacks
+  return secureCompare(session.token, token)
 }
 
 export async function updateSessionConfig(id: string, config: AgentConfig): Promise<Session | null> {

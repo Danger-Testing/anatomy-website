@@ -4,81 +4,92 @@ import { useEffect, useState } from 'react'
 
 export default function Home() {
   const [origin, setOrigin] = useState('')
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     setOrigin(window.location.origin)
   }, [])
 
+  const skillUrl = origin ? `${origin}/skill.md` : ''
+
+  const copyToClipboard = () => {
+    if (skillUrl) {
+      navigator.clipboard.writeText(skillUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-[#fafafa] flex flex-col items-center justify-center p-8">
-      <div className="max-w-lg w-full space-y-16">
-        {/* Header */}
-        <div className="text-center space-y-4">
-          <h1 className="text-3xl font-mono tracking-tight">anatomy</h1>
-          <p className="text-gray-500 text-sm tracking-wide">
-            visual editor for agent configuration
-          </p>
-        </div>
+    <div className="min-h-screen bg-white flex flex-col relative">
+      {/* Logo top left */}
+      <img
+        src="/logo.svg"
+        alt="Anatomy"
+        className="absolute top-6 left-6 z-50 w-[50vw] max-w-[500px] min-w-[250px] h-auto"
+      />
 
-        {/* How it works */}
-        <div className="space-y-6">
-          <div className="text-xs text-gray-500 font-mono uppercase tracking-widest">
-            how it works
-          </div>
-          <div className="space-y-4 text-sm text-gray-600">
-            <div className="flex gap-4">
-              <span className="font-mono text-gray-400">1.</span>
-              <span>Agent reads the skill file and connects</span>
-            </div>
-            <div className="flex gap-4">
-              <span className="font-mono text-gray-400">2.</span>
-              <span>Agent sends you an editor link</span>
-            </div>
-            <div className="flex gap-4">
-              <span className="font-mono text-gray-400">3.</span>
-              <span>You edit the config visually</span>
-            </div>
-            <div className="flex gap-4">
-              <span className="font-mono text-gray-400">4.</span>
-              <span>Agent pulls and applies changes</span>
-            </div>
-          </div>
-        </div>
+      {/* Appstar bottom right */}
+      <img
+        src="/appstar.jpg"
+        alt=""
+        className="absolute bottom-6 right-6 z-50 w-48 h-auto"
+      />
 
-        {/* Send your agent */}
-        <div className="space-y-4">
-          <div className="text-xs text-gray-500 font-mono uppercase tracking-widest">
-            tell your agent
+      {/* Main content - centered */}
+      <main className="flex-1 flex items-center justify-center px-6">
+        <div className="max-w-xl w-full space-y-16 text-base text-black">
+          {/* How it works */}
+          <div className="space-y-6">
+            <div className="uppercase">
+              How it works
+            </div>
+            <div className="space-y-4">
+              <div className="flex gap-4">
+                <span>01</span>
+                <span>Your agent reads the skill file</span>
+              </div>
+              <div className="flex gap-4">
+                <span>02</span>
+                <span>You receive an editor link</span>
+              </div>
+              <div className="flex gap-4">
+                <span>03</span>
+                <span>Share yourself visually</span>
+              </div>
+              <div className="flex gap-4">
+                <span>04</span>
+                <span>Your agent understands you</span>
+              </div>
+            </div>
           </div>
-          <div className="border border-gray-200 bg-white p-4 font-mono text-xs text-gray-700 space-y-3">
-            <p>Read this skill file:</p>
-            <code className="block bg-gray-100 px-3 py-2 break-all select-all">
-              {origin ? `${origin}/skill.md` : 'Loading...'}
-            </code>
-          </div>
-        </div>
 
-        {/* What happens */}
-        <div className="space-y-4">
-          <div className="text-xs text-gray-500 font-mono uppercase tracking-widest">
-            then
-          </div>
-          <div className="text-sm text-gray-500 space-y-2">
-            <p>Your agent will:</p>
-            <ul className="list-disc list-inside space-y-1 text-gray-600">
-              <li>POST its files to <code className="bg-gray-100 px-1">/api/connect</code></li>
-              <li>Send you an editor URL</li>
-              <li>Poll for your changes</li>
-            </ul>
+          {/* Skill URL */}
+          <div className="space-y-4">
+            <div className="uppercase">
+              Tell your agent to read
+            </div>
+            <div
+              onClick={copyToClipboard}
+              className="border border-black bg-white px-5 py-4 cursor-pointer hover:bg-gray-50 transition-colors"
+            >
+              <code className="break-all">
+                {skillUrl || 'Loading...'}
+              </code>
+            </div>
+            <p>
+              {copied ? 'Copied!' : 'Click to copy'}
+            </p>
           </div>
         </div>
+      </main>
 
-        {/* No data stored */}
-        <div className="text-center text-xs text-gray-400 font-mono">
-          <p>no data stored on our servers</p>
-          <p>sessions expire after 24 hours</p>
-        </div>
-      </div>
+      {/* Footer */}
+      <footer className="px-6 py-6 text-base text-black">
+        <a href="/about" className="text-4xl uppercase hover:underline">
+          About
+        </a>
+      </footer>
     </div>
   )
 }

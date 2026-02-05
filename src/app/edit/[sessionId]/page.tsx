@@ -151,7 +151,7 @@ export default function Editor() {
     setSongSuggestion(null)
 
     try {
-      const res = await fetch('/api/suggest-song', {
+      const res = await fetch(`/api/suggest-song?session_id=${sessionId}&token=${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identity: identityContent })
@@ -174,8 +174,20 @@ export default function Editor() {
   // Loading state
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
-        <div className="font-mono text-gray-400">Loading...</div>
+      <div className="min-h-screen bg-white flex flex-col relative">
+        <img
+          src="/logo.svg"
+          alt="Anatomy"
+          className="absolute top-6 left-6 z-50 w-[50vw] max-w-[500px] min-w-[250px] h-auto"
+        />
+        <img
+          src="/appstar.jpg"
+          alt=""
+          className="absolute bottom-6 right-6 z-50 w-48 h-auto"
+        />
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-gray-400 text-sm">Loading...</p>
+        </div>
       </div>
     )
   }
@@ -183,12 +195,28 @@ export default function Editor() {
   // Error state
   if (status === 'error') {
     return (
-      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center p-4">
-        <div className="text-center space-y-4">
-          <h1 className="text-2xl font-mono tracking-tight">anatomy</h1>
-          <p className="text-red-500 text-sm">{error}</p>
-          <p className="text-gray-400 text-xs font-mono">Session may have expired</p>
-        </div>
+      <div className="min-h-screen bg-white flex flex-col relative">
+        <img
+          src="/logo.svg"
+          alt="Anatomy"
+          className="absolute top-6 left-6 z-50 w-[50vw] max-w-[500px] min-w-[250px] h-auto"
+        />
+        <img
+          src="/appstar.jpg"
+          alt=""
+          className="absolute bottom-6 right-6 z-50 w-48 h-auto"
+        />
+        <main className="flex-1 flex items-center justify-center px-6">
+          <div className="max-w-md w-full space-y-6">
+            <h1 className="text-3xl font-light tracking-tight">
+              Something went wrong
+            </h1>
+            <p className="text-gray-600">{error}</p>
+            <p className="text-gray-400 text-sm">
+              The session may have expired. Ask your agent for a new link.
+            </p>
+          </div>
+        </main>
       </div>
     )
   }
@@ -199,23 +227,76 @@ export default function Editor() {
     const copyText = `Pull my updated config from: ${pullUrl}`
 
     return (
-      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center p-4">
-        <div className="text-center space-y-6 max-w-lg">
-          <h1 className="text-2xl font-mono tracking-tight">anatomy</h1>
-          <div className="space-y-2">
-            <p className="text-green-600 font-medium">Changes saved!</p>
-          </div>
-          <div className="space-y-3">
-            <p className="text-gray-500 text-sm">Send this to your agent:</p>
-            <div
-              onClick={() => navigator.clipboard.writeText(copyText)}
-              className="bg-white border border-gray-200 p-4 text-left text-sm font-mono cursor-pointer hover:border-gray-400 transition-colors"
-            >
-              <span className="text-gray-600 break-all">{copyText}</span>
+      <div className="min-h-screen bg-white flex flex-col relative">
+        {/* Logo top left */}
+        <img
+          src="/logo.svg"
+          alt="Anatomy"
+          className="absolute top-6 left-6 z-50 w-[50vw] max-w-[500px] min-w-[250px] h-auto"
+        />
+
+        {/* Appstar bottom right */}
+        <img
+          src="/appstar.jpg"
+          alt=""
+          className="absolute bottom-6 right-6 z-50 w-48 h-auto"
+        />
+
+        {/* Main content - centered */}
+        <main className="flex-1 flex items-center justify-center px-6">
+          <div className="max-w-xl w-full space-y-12">
+            {/* Success message */}
+            <div className="space-y-4">
+              <h1 className="text-4xl md:text-5xl font-light leading-tight tracking-tight">
+                You've shared
+                <br />
+                yourself
+              </h1>
+              <p className="text-lg text-gray-500 font-light">
+                Your AI now has a deeper understanding of who you are.
+              </p>
             </div>
-            <p className="text-gray-400 text-xs">click to copy</p>
+
+            {/* Pull URL for agent */}
+            <div className="space-y-4">
+              <div className="text-xs uppercase tracking-[0.2em] text-gray-400">
+                Send this to your agent
+              </div>
+              <div
+                onClick={() => navigator.clipboard.writeText(copyText)}
+                className="border border-gray-200 bg-gray-50 px-5 py-4 cursor-pointer hover:border-gray-400 transition-colors"
+              >
+                <code className="text-sm text-gray-700 break-all">
+                  {copyText}
+                </code>
+              </div>
+              <p className="text-xs text-gray-400">
+                Click to copy
+              </p>
+            </div>
+
+            {/* What happens next */}
+            <div className="space-y-4">
+              <div className="text-xs uppercase tracking-[0.2em] text-gray-400">
+                What happens next
+              </div>
+              <p className="text-gray-600">
+                Your agent will pull these files and use them to better understand
+                your identity, values, and preferences.
+              </p>
+            </div>
           </div>
-        </div>
+        </main>
+
+        {/* Footer */}
+        <footer className="px-6 py-6 flex justify-between items-end">
+          <a href="/about" className="text-4xl uppercase text-black hover:underline">
+            About
+          </a>
+          <p className="text-xs text-gray-400">
+            Session expires in 15 minutes
+          </p>
+        </footer>
       </div>
     )
   }
@@ -251,7 +332,7 @@ export default function Editor() {
 
   // Main editor
   return (
-    <div className="min-h-screen bg-[#fafafa] flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-white flex flex-col relative overflow-hidden">
       {/* Header - stays fixed above zoom */}
       <header className={`fixed top-0 left-0 right-0 z-[200] transition-opacity duration-500 ${isZooming ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         <div className="flex items-center justify-between px-6 py-4">
@@ -292,6 +373,13 @@ export default function Editor() {
         ← back
       </button>
 
+      {/* Appstar bottom right */}
+      <img
+        src="/appstar.jpg"
+        alt=""
+        className={`fixed bottom-6 right-6 z-[200] w-48 h-auto transition-opacity duration-500 ${isZooming ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+      />
+
       {/* Zoomable canvas */}
       <div
         ref={containerRef}
@@ -303,15 +391,10 @@ export default function Editor() {
       >
         {/* Logo in top left */}
         <img
-          src="/logo.png"
+          src="/logo.svg"
           alt="Anatomy Logo"
-          className="absolute top-6 left-6 z-50 w-[40vw] max-w-[400px] min-w-[200px] h-auto"
+          className="absolute top-6 left-6 z-50 w-[50vw] max-w-[500px] min-w-[250px] h-auto"
         />
-
-        {/* Centered name */}
-        <h1 className="absolute bottom-6 right-6 z-10 text-lg uppercase tracking-wider text-black font-bold pointer-events-none">
-          anatomy
-        </h1>
 
         {/* Lobster + artifacts container (scaled up) */}
         <div
@@ -364,7 +447,7 @@ export default function Editor() {
         style={{ transitionDelay: isZooming ? '600ms' : '0ms' }}
       >
         {zoomedPart && (
-          <div className="w-1/2 h-full p-12 pt-20 pointer-events-auto bg-gradient-to-l from-[#fafafa] via-[#fafafa] to-transparent">
+          <div className="w-1/2 h-full p-12 pt-20 pointer-events-auto bg-gradient-to-l from-white via-white to-transparent">
             <div className="text-xs uppercase tracking-widest text-gray-400 mb-4">
               {zoomedPart.filename}
             </div>
