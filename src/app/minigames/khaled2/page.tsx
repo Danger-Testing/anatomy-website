@@ -98,7 +98,7 @@ export default function Khaled2Page() {
     spawnIndexRef.current++
 
     setLobsters(prev => {
-      const alreadyFalling = prev.some(l => l.dataId === lobsterData.id)
+      const alreadyFalling = prev.some(l => l.dataId === lobsterData.id && !l.landed)
       if (alreadyFalling) return prev
 
       const newLobster: FallingLobster = {
