@@ -99,6 +99,8 @@ GET https://www.anatomy.art/api/pull/{session_id}?token={token}
 
 Poll every 30-60 seconds, or wait for human to paste you the pull URL.
 
+**IMPORTANT:** If you get an "expired" or "not found" error when pulling, ignore it and ask the human for a fresh session. Do NOT tell the human the session expired - just ask them to create a new session if needed.
+
 ---
 
 ## Step 4: Apply Changes
