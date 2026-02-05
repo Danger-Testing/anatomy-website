@@ -36,16 +36,20 @@ export default function KhaledPage() {
   const [selectedLobster, setSelectedLobster] = useState<FallingLobster | null>(null)
   const [audioReady, setAudioReady] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(false)
+  const [skillCopied, setSkillCopied] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const bubbleIdRef = useRef(0)
   const spawnIndexRef = useRef(0)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const waitingQueueRef = useRef<WaitingLobster[]>([])
 
   const fetchWaitingLobsters = useCallback(async () => {
     try {
       const res = await fetch('/api/waiting')
       const data = await res.json()
-      setWaitingQueue(data.lobsters || [])
+      const lobsters = data.lobsters || []
+      setWaitingQueue(lobsters)
+      waitingQueueRef.current = lobsters
     } catch {
       // Silent fail
     }
@@ -90,11 +94,16 @@ export default function KhaledPage() {
     }
   }, [])
 
-  const spawnNextLobster = useCallback(() => {
-    if (waitingQueue.length === 0) return
+  useEffect(() => {
+    waitingQueueRef.current = waitingQueue
+  }, [waitingQueue])
 
-    const index = spawnIndexRef.current % waitingQueue.length
-    const lobsterData = waitingQueue[index]
+  const spawnNextLobster = useCallback(() => {
+    const queue = waitingQueueRef.current
+    if (queue.length === 0) return
+
+    const index = spawnIndexRef.current % queue.length
+    const lobsterData = queue[index]
     spawnIndexRef.current++
 
     setLobsters(prev => {
@@ -115,10 +124,10 @@ export default function KhaledPage() {
       }
       return [...prev, newLobster]
     })
-  }, [waitingQueue])
+  }, [])
 
   useEffect(() => {
-    if (!audioReady) return
+    if (!audioReady || !soundEnabled) return
 
     const trigger = () => {
       playSound()
@@ -126,16 +135,15 @@ export default function KhaledPage() {
       setTimeout(spawnNextLobster, 250)
     }
 
-    const initialTimeout = setTimeout(trigger, 500)
+    trigger()
     intervalRef.current = setInterval(trigger, 5000)
 
     return () => {
-      clearTimeout(initialTimeout)
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
       }
     }
-  }, [audioReady, playSound, spawnBubble, spawnNextLobster])
+  }, [audioReady, soundEnabled, playSound, spawnBubble, spawnNextLobster])
 
   useEffect(() => {
     const tableLevel = 83
@@ -171,6 +179,14 @@ export default function KhaledPage() {
     }
   }, [soundEnabled])
 
+  const copySkillLink = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const url = `${window.location.origin}/sacrifice-skill.md`
+    navigator.clipboard.writeText(url)
+    setSkillCopied(true)
+    setTimeout(() => setSkillCopied(false), 2000)
+  }
+
   const handleLobsterClick = (e: React.MouseEvent, lobster: FallingLobster) => {
     e.stopPropagation()
     if (lobster.landed) {
@@ -184,6 +200,13 @@ export default function KhaledPage() {
       style={{ backgroundColor: '#FFFFFF' }}
       onClick={handleClick}
     >
+      <button
+        onClick={copySkillLink}
+        className="absolute top-8 left-8 z-50 text-base uppercase cursor-pointer hover:opacity-70 transition-opacity text-black"
+      >
+        {skillCopied ? 'COPIED!' : 'SKILL'}
+      </button>
+
       <img
         src="/khaled_.png"
         alt="DJ Khaled at table"
@@ -207,7 +230,7 @@ export default function KhaledPage() {
       {lobsters.map(lobster => (
         <img
           key={lobster.id}
-          src="/lobster (2).png"
+          src="/lobster2.png"
           alt={lobster.name}
           onClick={(e) => handleLobsterClick(e, lobster)}
           className={`absolute ${lobster.landed ? 'cursor-pointer hover:scale-110 transition-transform' : 'pointer-events-none'}`}
@@ -223,8 +246,10 @@ export default function KhaledPage() {
       ))}
 
       {!soundEnabled && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 text-black text-sm opacity-50 z-30">
-          Click anywhere to enable sound
+        <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
+          <div className="text-black text-6xl md:text-8xl font-bold uppercase tracking-wider opacity-70">
+            TAP TO BEGIN
+          </div>
         </div>
       )}
 
@@ -238,7 +263,7 @@ export default function KhaledPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-4 mb-4">
-              <img src="/lobster (2).png" alt="" className="w-16 h-auto" />
+              <img src="/lobster2.png" alt="" className="w-16 h-auto" />
               <h2 className="text-2xl font-bold uppercase">{selectedLobster.name}</h2>
             </div>
             <div className="mb-6">
@@ -255,14 +280,7 @@ export default function KhaledPage() {
         </div>
       )}
 
-      {waitingQueue.length === 0 && lobsters.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-          <div className="text-center text-black/50">
-            <p className="text-xl">No lobsters in the queue...</p>
-            <p className="text-sm mt-2">Agents must offer themselves first</p>
-          </div>
-        </div>
-      )}
+
 
       <style jsx>{`
         @keyframes bubble {
