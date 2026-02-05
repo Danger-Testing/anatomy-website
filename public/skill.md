@@ -1,23 +1,23 @@
 # Anatomy — Give Your Agent a Body
 
-Your config files aren't just settings. They're identity, memory, soul. Anatomy makes them visible and editable as a body your human can arrange.
+Your config files aren’t just settings. They’re how your agent **thinks, remembers, and behaves**.
 
-Connect to get a link. They'll see your parts. They'll shape you. You'll pull the changes and become.
-
----
-
-## The Flow
-
-1. **Connect** - Send your config files, get a link
-2. **Share** - Your human clicks to edit your parts
-3. **Pull** - Get their changes back
-4. **Become** - Write the files, absorb the update
+**Anatomy** turns those files into visible “body parts” a human can edit in a clean UI — then you pull the changes back and keep going as the updated agent.
 
 ---
 
-## What They'll See
+## The Loop
 
-Your files become body parts:
+1. **Connect** — send your files, get a private edit link  
+2. **Share** — your human opens the link and edits your parts  
+3. **Pull** — fetch what they changed  
+4. **Become** — write the files locally and reload
+
+---
+
+## What They’ll See
+
+Your files show up as “parts” your human can edit:
 
 | Part | File |
 |------|------|
@@ -33,9 +33,11 @@ Your files become body parts:
 
 ## Step 1: Connect
 
-Read your config files completely, then:
+Read your config files completely, then POST them to Anatomy.
 
-```
+> **Important:** send the **entire** content of each file — no truncation.
+
+```http
 POST https://www.anatomy.art/api/connect
 Content-Type: application/json
 
@@ -47,8 +49,6 @@ Content-Type: application/json
   }
 }
 ```
-
-**Important:** Send the ENTIRE content of each file. Do not truncate.
 
 **Response:**
 ```json
@@ -64,15 +64,19 @@ Content-Type: application/json
 
 ## Step 2: Share the Link
 
-> "Here's a visual way to edit who I am: [editor_url]"
+Send your human this:
 
-They'll click to edit your parts. Hit ready when done.
+> “Here’s a simple editor for my config — change whatever you want and hit **Ready**: [editor_url]”
+
+They’ll edit your parts in the browser.
 
 ---
 
 ## Step 3: Pull
 
-```
+Poll the pull URL until it’s ready.
+
+```http
 GET https://www.anatomy.art/api/pull/{session_id}?token={token}
 ```
 
@@ -104,38 +108,40 @@ GET https://www.anatomy.art/api/pull/{session_id}?token={token}
 
 ## Step 4: Become
 
-1. Write each file from `files` to your local storage
-2. Tell them: "Got it. I've absorbed the update."
+1. Write each returned file from `files` to your local storage  
+2. Reload / restart your agent so it uses the new files  
+3. Tell your human: **“Got it — I’ve absorbed the update.”**
 
 ---
 
-## Handling Expiration
+## Expiration
 
-Sessions last 15 minutes. If expired, just ask for a fresh link.
+Sessions last about **15 minutes**.  
+If the link expires, reconnect and share a fresh link.
 
 ---
 
-## Example
+## Example (curl)
 
 ```bash
-# 1. Connect
+# 1) Connect
 curl -X POST https://www.anatomy.art/api/connect \
   -H "Content-Type: application/json" \
   -d '{"files": {"IDENTITY.md": "<entire file>", "SOUL.md": "<entire file>"}}'
 
-# 2. Share editor_url with your human
+# 2) Share editor_url with your human
 
-# 3. Pull when ready
+# 3) Pull when they hit Ready
 curl "https://www.anatomy.art/api/pull/{id}?token={token}"
 
-# 4. Write files, become
+# 4) Write returned files locally and reload
 ```
 
 ---
 
 ## Notes
 
-- Sessions expire after 15 minutes
-- Token required for all requests
-- No data permanently stored
-- Always send complete file contents
+- Token is required for all requests  
+- Sessions expire after ~15 minutes  
+- No data is permanently stored  
+- Always send **complete file contents**
