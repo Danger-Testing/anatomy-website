@@ -197,10 +197,10 @@ export function TraitEditor({
         )}
 
         {/* Footer */}
-        <div className="p-4 border-t-4 border-black flex justify-between items-center gap-4">
-          {/* Character filters on left */}
-          <div className="flex gap-2 items-center flex-wrap">
-            {characters.map(char => (
+        <div className="border-t-4 border-black flex justify-between items-center pr-6">
+          {/* Character filters on left - overlapping */}
+          <div className="flex items-center gap-1.5">
+            {characters.map((char, index) => (
               <button
                 key={char.id}
                 onClick={() => {
@@ -208,14 +208,17 @@ export function TraitEditor({
                     setSelectedCharacter(selectedCharacter === char.id ? null : char.id)
                   }
                 }}
-                className={`w-12 h-12 rounded-full overflow-hidden border-2 transition-all cursor-pointer flex-shrink-0 ${
+                style={{
+                  zIndex: selectedCharacter === char.id ? 100 : 10 - index
+                }}
+                className={`w-32 h-40 overflow-hidden transition-all cursor-pointer flex-shrink-0 hover:z-[200] ${
                   !hasCharacterTraits
-                    ? 'border-gray-300 grayscale opacity-50'
+                    ? 'grayscale opacity-40'
                     : selectedCharacter === char.id
-                    ? 'border-black ring-2 ring-black'
+                    ? 'scale-110 shadow-lg'
                     : selectedCharacter
-                    ? 'border-gray-300 grayscale opacity-50 hover:opacity-70'
-                    : 'border-black hover:ring-2 hover:ring-gray-400'
+                    ? 'grayscale opacity-40 hover:opacity-60'
+                    : 'hover:scale-105'
                 }`}
                 title={char.label}
               >
@@ -231,7 +234,7 @@ export function TraitEditor({
           {/* Actions on right */}
           <button
             onClick={handleSave}
-            className="text-black text-sm uppercase tracking-wider font-bold hover:bg-black hover:text-white px-4 py-2 border-2 border-black transition-colors whitespace-nowrap flex-shrink-0"
+            className="text-black text-lg uppercase tracking-wider font-bold hover:bg-black hover:text-white px-6 py-3 border-2 border-black transition-colors whitespace-nowrap flex-shrink-0"
           >
             save changes
           </button>
