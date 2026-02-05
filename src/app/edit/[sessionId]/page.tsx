@@ -288,12 +288,6 @@ export default function Editor() {
           </div>
         </main>
 
-        {/* Footer */}
-        <footer className="px-6 py-6 text-base text-black">
-          <a href="/about" className="text-4xl uppercase hover:underline">
-            About
-          </a>
-        </footer>
       </div>
     )
   }
@@ -306,13 +300,6 @@ export default function Editor() {
         <div className="flex items-center justify-between px-6 py-4">
           <div></div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={curate}
-              disabled={curating}
-              className="text-black text-lg uppercase tracking-wider font-bold disabled:opacity-50"
-            >
-              {curating ? 'curating...' : 'curate'}
-            </button>
             <button
               onClick={saveConfig}
               disabled={saving}
