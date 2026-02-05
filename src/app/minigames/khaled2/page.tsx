@@ -98,8 +98,8 @@ export default function Khaled2Page() {
     spawnIndexRef.current++
 
     setLobsters(prev => {
-      const alreadyFalling = prev.some(l => l.dataId === lobsterData.id && !l.landed)
-      if (alreadyFalling) return prev
+      const anyFalling = prev.some(l => !l.landed)
+      if (anyFalling) return prev
 
       const newLobster: FallingLobster = {
         id: `falling-${Date.now()}-${Math.random()}`,
@@ -187,7 +187,8 @@ export default function Khaled2Page() {
       <img
         src="/khaled_.png"
         alt="DJ Khaled at table"
-        className="absolute inset-8 w-[calc(100%-4rem)] h-[calc(100%-4rem)] object-contain object-bottom pointer-events-none"
+        className="absolute inset-8 w-[calc(100%-4rem)] h-[calc(100%-4rem)] object-contain object-bottom pointer-events-none select-none"
+        draggable={false}
       />
 
       {bubbles.map(bubble => (
