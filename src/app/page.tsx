@@ -31,13 +31,13 @@ export default function Home() {
 
       {/* Appstar bottom right */}
       <img
-        src="/appstar.jpg"
+        src="/appstar.png"
         alt=""
         className="absolute bottom-6 right-6 z-50 w-48 h-auto"
       />
 
-      {/* Main content - centered */}
-      <main className="flex-1 flex items-center justify-center px-6">
+      {/* Main content - absolutely centered */}
+      <main className="absolute inset-0 flex items-center justify-center px-6">
         <div className="max-w-xl w-full space-y-16 text-base text-black">
           {/* How it works */}
           <div className="space-y-6">
@@ -85,7 +85,7 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="px-6 py-6 text-base text-black">
+      <footer className="absolute bottom-0 left-0 px-6 py-6 text-base text-black">
         <a href="/about" className="text-4xl uppercase hover:underline">
           About
         </a>

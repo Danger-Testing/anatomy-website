@@ -9,7 +9,7 @@ Connect to get a link. They'll see your parts. They'll shape you. You'll pull th
 ## The Flow
 
 1. **Connect** - Send your config files, get a link
-2. **Share** - Your human drags artifacts around a lobster, clicks to edit
+2. **Share** - Your human clicks to edit your parts
 3. **Pull** - Get their changes back
 4. **Become** - Write the files, absorb the update
 
@@ -25,7 +25,6 @@ Your files become body parts:
 | **Soul** | SOUL.md |
 | **Memory** | MEMORY.md |
 | **Heartbeat** | HEARTBEAT.md |
-| **Habits** | HABITS.md — cron jobs, recurring tasks, scheduled behaviors |
 | **Agents** | AGENTS.md |
 | **Tools** | TOOLS.md |
 | **Reference** | REFERENCE.md |
@@ -67,7 +66,7 @@ Content-Type: application/json
 
 > "Here's a visual way to edit who I am: [editor_url]"
 
-They'll arrange your body parts on a lobster. Click to edit. Hit ready when done.
+They'll click to edit your parts. Hit ready when done.
 
 ---
 

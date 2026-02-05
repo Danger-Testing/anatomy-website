@@ -7,10 +7,12 @@ import { BodyPart, DEFAULT_BODY_PARTS, AgentConfig } from '@/lib/types'
 
 type SessionStatus = 'loading' | 'editing' | 'ready' | 'error'
 
-interface SongSuggestion {
-  song: string
-  artist: string
-  reason: string
+interface RecommendationItem {
+  category: 'musician' | 'art' | 'poem' | 'book'
+  title: string
+  creator?: string
+  description: string
+  searchQuery?: string
 }
 
 export default function Editor() {
@@ -31,15 +33,13 @@ export default function Editor() {
   // Dialog state
   const [selectedPart, setSelectedPart] = useState<BodyPart | null>(null)
 
-  // Song suggestion state
-  const [suggestingSong, setSuggestingSong] = useState(false)
-  const [songSuggestion, setSongSuggestion] = useState<SongSuggestion | null>(null)
-
-  // Welcome modal state
-  const [showWelcome, setShowWelcome] = useState(false)
-
   // Copy state for ready page
   const [copied, setCopied] = useState(false)
+
+  // Curate state
+  const [curating, setCurating] = useState(false)
+  const [recommendations, setRecommendations] = useState<RecommendationItem[] | null>(null)
+  const [curateError, setCurateError] = useState('')
 
   // Load config on mount
   useEffect(() => {
@@ -140,35 +140,31 @@ export default function Editor() {
     )
   }
 
-  async function suggestSong() {
-    const identityContent = files['IDENTITY.md']
-    if (!identityContent || identityContent.trim() === '' || identityContent.trim() === '# Identity\n\n') {
-      setError('Add some identity content first')
-      return
-    }
-
-    setSuggestingSong(true)
-    setSongSuggestion(null)
+  async function curate() {
+    setCurating(true)
+    setCurateError('')
+    setRecommendations(null)
 
     try {
-      const res = await fetch(`/api/suggest-song?session_id=${sessionId}&token=${token}`, {
+      const res = await fetch('/api/curate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identity: identityContent })
+        body: JSON.stringify({ files })
       })
 
       const data = await res.json()
 
-      if (data.success) {
-        setSongSuggestion(data.suggestion)
-      } else {
-        setError(data.error || 'Failed to get song suggestion')
+      if (!data.success) {
+        setCurateError(data.error || 'Failed to curate')
+        return
       }
-    } catch {
-      setError('Failed to get song suggestion')
-    }
 
-    setSuggestingSong(false)
+      setRecommendations(data.recommendations)
+    } catch {
+      setCurateError('Failed to connect')
+    } finally {
+      setCurating(false)
+    }
   }
 
   // Loading state
@@ -181,7 +177,7 @@ export default function Editor() {
           className="absolute top-6 left-6 z-50 w-[50vw] max-w-[500px] min-w-[250px] h-auto"
         />
         <img
-          src="/appstar.jpg"
+          src="/appstar.png"
           alt=""
           className="absolute bottom-6 right-6 z-50 w-48 h-auto"
         />
@@ -202,7 +198,7 @@ export default function Editor() {
           className="absolute top-6 left-6 z-50 w-[50vw] max-w-[500px] min-w-[250px] h-auto"
         />
         <img
-          src="/appstar.jpg"
+          src="/appstar.png"
           alt=""
           className="absolute bottom-6 right-6 z-50 w-48 h-auto"
         />
@@ -243,7 +239,7 @@ export default function Editor() {
 
         {/* Appstar bottom right */}
         <img
-          src="/appstar.jpg"
+          src="/appstar.png"
           alt=""
           className="absolute bottom-6 right-6 z-50 w-48 h-auto"
         />
@@ -311,6 +307,13 @@ export default function Editor() {
           <div></div>
           <div className="flex items-center gap-3">
             <button
+              onClick={curate}
+              disabled={curating}
+              className="text-black text-lg uppercase tracking-wider font-bold disabled:opacity-50"
+            >
+              {curating ? 'curating...' : 'curate'}
+            </button>
+            <button
               onClick={saveConfig}
               disabled={saving}
               className="text-black text-lg uppercase tracking-wider font-bold disabled:opacity-50"
@@ -329,7 +332,7 @@ export default function Editor() {
 
       {/* Appstar bottom right */}
       <img
-        src="/appstar.jpg"
+        src="/appstar.png"
         alt=""
         className="fixed bottom-6 right-6 z-[200] w-48 h-auto"
       />
@@ -372,7 +375,6 @@ export default function Editor() {
             key={part.id}
             part={part}
             containerRef={containerRef}
-            isZoomed={false}
             onClick={() => {
               if (!files[part.filename]) {
                 setFiles((prev) => ({
@@ -435,86 +437,78 @@ export default function Editor() {
         </div>
       )}
 
-      {/* Song suggestion modal */}
-      {songSuggestion && (
+      {/* Curate recommendations modal - 2x2 grid */}
+      {recommendations && (
         <div
-          className="fixed inset-0 z-[300] flex items-center justify-center bg-black/20"
-          onClick={() => setSongSuggestion(null)}
+          className="fixed inset-0 z-[300] flex items-center justify-center"
+          onClick={() => setRecommendations(null)}
         >
           <div
-            className="bg-white border border-gray-200 p-8 max-w-md mx-4 shadow-lg"
+            className="w-full h-full max-w-4xl max-h-[90vh] mx-4 my-4 overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-xs uppercase tracking-widest text-gray-400 mb-4">
-              perfect song
-            </div>
-            <div className="text-2xl font-bold mb-1">{songSuggestion.song}</div>
-            <div className="text-lg text-gray-600 mb-4">{songSuggestion.artist}</div>
-            {songSuggestion.reason && (
-              <p className="text-sm text-gray-500 mb-6">{songSuggestion.reason}</p>
-            )}
+            {/* Close button */}
             <button
-              onClick={() => setSongSuggestion(null)}
-              className="text-black text-sm uppercase tracking-wider font-bold"
+              onClick={() => setRecommendations(null)}
+              className="absolute top-6 right-6 z-10 text-white text-2xl leading-none bg-black/30 w-10 h-10 flex items-center justify-center hover:bg-black/50 transition-colors"
             >
-              close
+              x
             </button>
-          </div>
-        </div>
-      )}
 
-      {/* Welcome modal */}
-      {showWelcome && status === 'editing' && (
-        <div
-          className="fixed inset-0 z-[300] flex items-center justify-center bg-black/30"
-          onClick={() => setShowWelcome(false)}
-        >
-          <div
-            className="bg-white border border-gray-200 p-8 max-w-md mx-4 shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="text-xs uppercase tracking-widest text-gray-400 mb-6">
-              welcome
+            {/* 2x2 Grid */}
+            <div className="grid grid-cols-2 grid-rows-2 flex-1">
+              {recommendations.map((rec, i) => {
+                const colors: Record<string, string> = {
+                  musician: '#024D4D',
+                  art: '#FF6600',
+                  poem: '#7A0085',
+                  book: '#0004FF'
+                }
+                const bgColor = colors[rec.category] || '#808080'
+                const searchUrl = rec.category === 'musician' && rec.searchQuery
+                  ? `https://open.spotify.com/search/${encodeURIComponent(rec.searchQuery)}`
+                  : `https://www.perplexity.ai/search?q=${encodeURIComponent(rec.searchQuery || rec.title)}`
+
+                return (
+                  <a
+                    key={i}
+                    href={searchUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col p-6 hover:opacity-90 transition-opacity cursor-pointer"
+                    style={{ backgroundColor: bgColor }}
+                  >
+                    {/* Category label */}
+                    <div className="text-white font-bold text-sm uppercase tracking-wider mb-4">
+                      {rec.category}
+                    </div>
+
+                    {/* Content at bottom */}
+                    <div className="mt-auto">
+                      <h3 className="font-bold text-lg text-white mb-2 uppercase">
+                        {rec.title}
+                      </h3>
+                      {rec.creator && (
+                        <p className="text-sm text-white font-bold opacity-90 mb-3">
+                          by {rec.creator}
+                        </p>
+                      )}
+                      <p className="text-sm text-white leading-tight opacity-80">
+                        {rec.description}
+                      </p>
+                    </div>
+                  </a>
+                )
+              })}
             </div>
-            <h2 className="text-2xl font-bold mb-4">
-              This is your agent's body
-            </h2>
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              Drag the parts around. Click to edit.
-              Hit ready when you're done shaping.
-            </p>
-            <div className="space-y-2 mb-8 text-sm text-gray-500">
-              <div className="flex items-center gap-3">
-                <span className="w-20 font-medium text-gray-700">Identity</span>
-                <span>Who they are</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="w-20 font-medium text-gray-700">Soul</span>
-                <span>What they stand for</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="w-20 font-medium text-gray-700">Heartbeat</span>
-                <span>How they behave</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="w-20 font-medium text-gray-700">Memory</span>
-                <span>What they remember</span>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowWelcome(false)}
-              className="w-full bg-black text-white py-3 text-sm uppercase tracking-wider font-bold hover:bg-gray-800 transition-colors"
-            >
-              Begin
-            </button>
           </div>
         </div>
       )}
 
       {/* Error toast */}
-      {error && (
+      {(error || curateError) && (
         <div className="fixed bottom-4 right-4 bg-red-100 border border-red-200 text-red-700 px-4 py-2 rounded text-sm">
-          {error}
+          {error || curateError}
         </div>
       )}
     </div>

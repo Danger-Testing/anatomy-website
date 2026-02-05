@@ -9,7 +9,6 @@ interface ArtifactProps {
   onPositionChange: (position: { x: number; y: number }) => void
   onResize: (size: { width: number; height: number }) => void
   containerRef: React.RefObject<HTMLDivElement | null>
-  isZoomed?: boolean
 }
 
 export function Artifact({
@@ -17,8 +16,7 @@ export function Artifact({
   onClick,
   onPositionChange,
   onResize,
-  containerRef,
-  isZoomed
+  containerRef
 }: ArtifactProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
