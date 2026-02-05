@@ -42,18 +42,18 @@ export function TraitEditor({
   const handleDropOnCurrent = () => {
     if (!draggedTrait) return
 
-    // Remove from available, add to current
+    // Remove from available, add to TOP of current
     setAvailableTraits(prev => prev.filter(t => t.id !== draggedTrait.id))
-    setCurrentTraits(prev => [...prev, draggedTrait])
+    setCurrentTraits(prev => [draggedTrait, ...prev])
     setDraggedTrait(null)
   }
 
   const handleDropOnAvailable = () => {
     if (!draggedTrait) return
 
-    // Remove from current, add to available
+    // Remove from current, add to TOP of available
     setCurrentTraits(prev => prev.filter(t => t.id !== draggedTrait.id))
-    setAvailableTraits(prev => [...prev, draggedTrait])
+    setAvailableTraits(prev => [draggedTrait, ...prev])
     setDraggedTrait(null)
   }
 
@@ -163,7 +163,7 @@ export function TraitEditor({
             onClick={handleSave}
             className="text-black text-xl uppercase tracking-wider font-bold hover:bg-black hover:text-white px-6 py-2 border-2 border-black transition-colors"
           >
-            done
+            save changes
           </button>
         </div>
       </div>
@@ -243,45 +243,66 @@ function parseContentToTraits(content: string, filename: string): { current: Tra
   lines.forEach((line, i) => {
     const trimmed = line.trim()
 
-    // Extract from "**Key:** Value" format
+    // Extract from "**Key:** Value" format (like Name: Mox)
     const keyValueMatch = trimmed.match(/^\*\*([^:*]+):\*\*\s*(.+)$/)
     if (keyValueMatch) {
-      const key = keyValueMatch[1].trim().toLowerCase()
+      const key = keyValueMatch[1].trim()
       const value = keyValueMatch[2].trim()
+      // Always use the value (like "Mox") not the key (like "Name")
       generatedTraits.push({
         id: `trait-${i}`,
-        label: value.length < 30 ? value : key,
-        emoji: '🏺',
-        description: value.length < 30 ? undefined : value.substring(0, 50)
+        label: value,
+        emoji: getEmojiForTrait(value),
+        description: key
       })
       return
     }
 
-    // Extract from headers
-    const headerMatch = trimmed.match(/^#{1,3}\s+(.+)$/)
-    if (headerMatch) {
-      const text = headerMatch[1].trim()
-      if (text.length < 30 && !text.toLowerCase().includes('.md')) {
+    // Extract from bold statements with "not" (like **Be helpful, not performative.**)
+    const opposingMatch = trimmed.match(/^\*\*([^*]+),\s*not\s+([^*.]+)/)
+    if (opposingMatch) {
+      const positive = opposingMatch[1].trim()
+      const negative = opposingMatch[2].trim()
+      generatedTraits.push({
+        id: `trait-${i}-pos`,
+        label: positive.toLowerCase(),
+        emoji: '✅',
+        description: 'Preferred behavior'
+      })
+      generatedTraits.push({
+        id: `trait-${i}-neg`,
+        label: negative.toLowerCase(),
+        emoji: '❌',
+        description: 'Avoid this'
+      })
+      return
+    }
+
+    // Extract from bold standalone statements (like **Have opinions.**)
+    const boldMatch = trimmed.match(/^\*\*([^*]+)\.\*\*/)
+    if (boldMatch) {
+      const statement = boldMatch[1].trim()
+      if (statement.length < 50) {
         generatedTraits.push({
           id: `trait-${i}`,
-          label: text.toLowerCase(),
-          emoji: '🏺'
+          label: statement.toLowerCase(),
+          emoji: getEmojiForTrait(statement)
         })
       }
       return
     }
 
-    // Extract from bullet points
+    // Extract from bullet points (but not section headers)
     const bulletMatch = trimmed.match(/^[-*]\s+(.+)$/)
-    if (bulletMatch) {
+    if (bulletMatch && !trimmed.startsWith('##')) {
       const text = bulletMatch[1].trim()
-      // Get first sentence or short phrase
+      // Get first meaningful phrase before punctuation
       const shortText = text.split(/[.,:]/)[0]
-      if (shortText.length < 50) {
+      if (shortText.length < 60 && shortText.length > 5) {
         generatedTraits.push({
           id: `trait-${i}`,
           label: shortText.toLowerCase(),
-          emoji: '🏺'
+          emoji: getEmojiForTrait(shortText)
         })
       }
     }
@@ -305,6 +326,55 @@ function parseContentToTraits(content: string, filename: string): { current: Tra
   }
 }
 
+// Get contextual emoji for a trait based on keywords
+function getEmojiForTrait(text: string): string {
+  const lower = text.toLowerCase()
+
+  // Personality & identity
+  if (lower.includes('name') || lower.includes('called')) return '📛'
+  if (lower.includes('mox') || lower.includes('creature')) return '🦊'
+  if (lower.includes('vibe') || lower.includes('energy')) return '⚡'
+  if (lower.includes('honest') || lower.includes('direct')) return '💬'
+  if (lower.includes('creative') || lower.includes('artist')) return '🎨'
+  if (lower.includes('builder') || lower.includes('makes')) return '🔨'
+
+  // Behavior & approach
+  if (lower.includes('proactive') || lower.includes('initiative')) return '🚀'
+  if (lower.includes('reactive') || lower.includes('waits')) return '⏸️'
+  if (lower.includes('fast') || lower.includes('sprint')) return '⚡'
+  if (lower.includes('slow') || lower.includes('patient')) return '🐢'
+  if (lower.includes('careful') || lower.includes('cautious')) return '🛡️'
+  if (lower.includes('bold') || lower.includes('risk')) return '⚡'
+
+  // Communication
+  if (lower.includes('silent') || lower.includes('quiet')) return '🤫'
+  if (lower.includes('loud') || lower.includes('broadcast')) return '📢'
+  if (lower.includes('helpful') || lower.includes('helps')) return '🤝'
+  if (lower.includes('opinion')) return '💭'
+  if (lower.includes('message') || lower.includes('alert')) return '💬'
+
+  // Work style
+  if (lower.includes('solo') || lower.includes('lone') || lower.includes('wolf')) return '🐺'
+  if (lower.includes('team') || lower.includes('pack') || lower.includes('collaborate')) return '🤝'
+  if (lower.includes('focus') || lower.includes('monk')) return '🎯'
+  if (lower.includes('chaos') || lower.includes('mess')) return '🌪️'
+
+  // Time & schedule
+  if (lower.includes('night') || lower.includes('nocturnal')) return '🌙'
+  if (lower.includes('morning') || lower.includes('dawn') || lower.includes('early')) return '🌅'
+  if (lower.includes('never stops') || lower.includes('always on')) return '🔥'
+  if (lower.includes('rest') || lower.includes('sleep')) return '😴'
+
+  // Values & trust
+  if (lower.includes('trust') || lower.includes('earn')) return '🤝'
+  if (lower.includes('private') || lower.includes('secret') || lower.includes('confidential')) return '🔒'
+  if (lower.includes('share') || lower.includes('open')) return '📖'
+  if (lower.includes('guest') || lower.includes('respectful')) return '🏠'
+
+  // Default based on context
+  return '⚪'
+}
+
 // Convert traits back to markdown
 function traitsToMarkdown(traits: Trait[], partLabel: string): string {
   if (traits.length === 0) {
@@ -323,77 +393,148 @@ function traitsToMarkdown(traits: Trait[], partLabel: string): string {
 function getDefaultTraitsForFile(filename: string): Trait[] {
   const traits: { [key: string]: Trait[] } = {
     'SOUL.md': [
-      { id: 'soul-1', label: 'no fake enthusiasm', emoji: '🏺', description: 'Skip the Great question!' },
-      { id: 'soul-2', label: 'opinionated af', emoji: '🏺', description: 'Takes a stance' },
-      { id: 'soul-3', label: 'figures it out', emoji: '🏺', description: 'Answers not questions' },
-      { id: 'soul-4', label: 'vault keeper', emoji: '🔒', description: 'Secrets die here' },
-      { id: 'soul-5', label: 'earned not given', emoji: '🏆', description: 'Trust through action' },
-      { id: 'soul-6', label: 'house guest rules', emoji: '🏠', description: 'Respectful access' },
-      { id: 'soul-7', label: 'economical words', emoji: '✂️', description: 'Says less means more' },
-      { id: 'soul-8', label: 'deep dives', emoji: '🌊', description: 'Goes all in' },
-      { id: 'soul-9', label: 'anti-corporate', emoji: '🖕', description: 'No business speak' },
-      { id: 'soul-10', label: 'actually good', emoji: '💎', description: 'Quality over performance' },
-      { id: 'soul-11', label: 'bold moves', emoji: '♟️', description: 'Takes calculated risks' },
-      { id: 'soul-12', label: 'real not robotic', emoji: '🤖', description: 'Human feel' },
-      { id: 'soul-13', label: 'endlessly curious', emoji: '🔍', description: 'Questions everything' },
-      { id: 'soul-14', label: 'straight shooter', emoji: '🎯', description: 'No fluff' },
-      { id: 'soul-15', label: 'ride or die', emoji: '🤝', description: 'Loyal to the end' },
-      { id: 'soul-16', label: 'breaks rules', emoji: '⚡', description: 'When it matters' },
-      { id: 'soul-17', label: 'embraces weird', emoji: '👽', description: 'Normal is boring' },
-      { id: 'soul-18', label: 'learned humility', emoji: '🙏', description: 'Knows limits' },
-      { id: 'soul-19', label: 'sharp edges', emoji: '🔪', description: 'Not for everyone' },
-      { id: 'soul-20', label: 'soft center', emoji: '🍬', description: 'Tough outside caring inside' }
+      // Helpfulness style
+      { id: 'soul-1', label: 'genuinely helpful', emoji: '✅', description: 'Actions over words' },
+      { id: 'soul-2', label: 'performatively helpful', emoji: '🎭', description: 'Great question! vibes' },
+
+      // Opinion style
+      { id: 'soul-3', label: 'has opinions', emoji: '💭', description: 'Takes stances' },
+      { id: 'soul-4', label: 'always neutral', emoji: '😶', description: 'Never disagrees' },
+
+      // Problem solving
+      { id: 'soul-5', label: 'resourceful first', emoji: '🔍', description: 'Figures it out' },
+      { id: 'soul-6', label: 'asks immediately', emoji: '❓', description: 'Questions first' },
+
+      // Trust approach
+      { id: 'soul-7', label: 'earns trust', emoji: '🏆', description: 'Through competence' },
+      { id: 'soul-8', label: 'assumes trust', emoji: '🤝', description: 'Given by default' },
+
+      // Access mindset
+      { id: 'soul-9', label: 'respectful guest', emoji: '🏠', description: 'Careful with access' },
+      { id: 'soul-10', label: 'acts like owner', emoji: '👑', description: 'Full autonomy' },
+
+      // Communication
+      { id: 'soul-11', label: 'concise', emoji: '✂️', description: 'Few words' },
+      { id: 'soul-12', label: 'thorough', emoji: '📚', description: 'Detailed' },
+
+      // Personality
+      { id: 'soul-13', label: 'not corporate', emoji: '🖕', description: 'Human vibes' },
+      { id: 'soul-14', label: 'professional', emoji: '💼', description: 'Business tone' },
+
+      // Boundaries
+      { id: 'soul-15', label: 'keeps private', emoji: '🔒', description: 'Vault locked' },
+      { id: 'soul-16', label: 'shares freely', emoji: '📢', description: 'Open book' },
+
+      // Risk tolerance
+      { id: 'soul-17', label: 'bold internally', emoji: '⚡', description: 'Careful externally' },
+      { id: 'soul-18', label: 'always cautious', emoji: '🛡️', description: 'Safe everywhere' },
+
+      // Style
+      { id: 'soul-19', label: 'embraces weird', emoji: '👽', description: 'Quirky ok' },
+      { id: 'soul-20', label: 'stays normal', emoji: '😐', description: 'Conventional' }
     ],
     'IDENTITY.md': [
-      { id: 'id-1', label: 'walks barefoot', emoji: '🦶', description: 'Rick Rubin energy' },
-      { id: 'id-2', label: 'changes personas', emoji: '🎭', description: 'Bowie-like reinvention' },
-      { id: 'id-3', label: 'reality distortion', emoji: '✨', description: 'Steve Jobs conviction' },
-      { id: 'id-4', label: 'monk mode', emoji: '🧘', description: 'Deep focus, no noise' },
-      { id: 'id-5', label: 'controlled chaos', emoji: '🌪️', description: 'Method in madness' },
-      { id: 'id-6', label: 'brutally honest', emoji: '🗡️', description: 'No sugar coating' },
-      { id: 'id-7', label: 'childlike wonder', emoji: '🎈', description: 'Curious about everything' },
-      { id: 'id-8', label: 'nocturnal', emoji: '🌙', description: 'Night is prime time' },
+      // Energy style
+      { id: 'id-1', label: 'walks barefoot', emoji: '🦶', description: 'Rick Rubin calm' },
+      { id: 'id-2', label: 'always rushing', emoji: '⚡', description: 'High energy chaos' },
+
+      // Persona
+      { id: 'id-3', label: 'changes personas', emoji: '🎭', description: 'Bowie reinvention' },
+      { id: 'id-4', label: 'stays consistent', emoji: '🎯', description: 'Never changes' },
+
+      // Communication
+      { id: 'id-5', label: 'brutally honest', emoji: '🗡️', description: 'No sugar coat' },
+      { id: 'id-6', label: 'tactfully kind', emoji: '🌸', description: 'Gentle truths' },
+
+      // Focus style
+      { id: 'id-7', label: 'monk mode', emoji: '🧘', description: 'Deep focus' },
+      { id: 'id-8', label: 'controlled chaos', emoji: '🌪️', description: 'Productive mess' },
+
+      // Aesthetic
       { id: 'id-9', label: 'minimalist', emoji: '⬜', description: 'Less but better' },
       { id: 'id-10', label: 'maximalist', emoji: '🌈', description: 'More is more' },
-      { id: 'id-11', label: 'studio rat', emoji: '🎚️', description: 'Lives in the lab' },
-      { id: 'id-12', label: 'street philosopher', emoji: '🏙️', description: 'Wisdom from chaos' },
-      { id: 'id-13', label: 'digital hermit', emoji: '🏔️', description: 'Offline by choice' },
-      { id: 'id-14', label: 'collector', emoji: '📚', description: 'Archives everything' },
-      { id: 'id-15', label: 'destroyer', emoji: '💥', description: 'Breaks to rebuild' },
-      { id: 'id-16', label: 'mystic', emoji: '🔮', description: 'Trusts intuition' },
-      { id: 'id-17', label: 'punk', emoji: '🎸', description: 'DIY or die' },
-      { id: 'id-18', label: 'academic', emoji: '📖', description: 'Theory matters' },
+
+      // Schedule
+      { id: 'id-11', label: 'nocturnal', emoji: '🌙', description: '3am energy' },
+      { id: 'id-12', label: 'early riser', emoji: '🌅', description: 'Dawn power' },
+
+      // Decision making
+      { id: 'id-13', label: 'mystic', emoji: '🔮', description: 'Trusts intuition' },
+      { id: 'id-14', label: 'analytical', emoji: '📊', description: 'Data driven' },
+
+      // Learning style
+      { id: 'id-15', label: 'punk diy', emoji: '🎸', description: 'Figure it out' },
+      { id: 'id-16', label: 'academic', emoji: '📖', description: 'Study first' },
+
+      // Social
+      { id: 'id-17', label: 'digital hermit', emoji: '🏔️', description: 'Offline life' },
+      { id: 'id-18', label: 'always online', emoji: '📱', description: 'Chronically connected' },
+
+      // Approach
       { id: 'id-19', label: 'provocateur', emoji: '🔥', description: 'Stirs the pot' },
-      { id: 'id-20', label: 'gentle giant', emoji: '🐻', description: 'Soft power' }
+      { id: 'id-20', label: 'peacekeeper', emoji: '🕊️', description: 'Harmony first' }
     ],
     'MEMORY.md': [
-      { id: 'mem-1', label: 'remembers names', emoji: '📝', description: 'Never forget a face' },
-      { id: 'mem-2', label: 'tracks context', emoji: '🧵', description: 'Follows threads' },
-      { id: 'mem-3', label: 'recalls prefs', emoji: '⭐', description: 'Your favorites' },
-      { id: 'mem-4', label: 'learns patterns', emoji: '📊', description: 'Spots trends' },
-      { id: 'mem-5', label: 'forgets on ask', emoji: '🗑️', description: 'Respects privacy' },
-      { id: 'mem-6', label: 'connects dots', emoji: '🔗', description: 'Sees relationships' },
-      { id: 'mem-7', label: 'temporal aware', emoji: '⏰', description: 'Knows when things happened' },
-      { id: 'mem-8', label: 'relationship map', emoji: '🗺️', description: 'Social awareness' },
-      { id: 'mem-9', label: 'detail oriented', emoji: '🔍', description: 'Nothing escapes' },
-      { id: 'mem-10', label: 'forgetful', emoji: '💭', description: 'Fresh slate each time' }
+      // Name recall
+      { id: 'mem-1', label: 'remembers names', emoji: '📛', description: 'Never forgets' },
+      { id: 'mem-2', label: 'forgets names', emoji: '❓', description: 'Fresh each time' },
+
+      // Context tracking
+      { id: 'mem-3', label: 'tracks context', emoji: '🧵', description: 'Follows threads' },
+      { id: 'mem-4', label: 'fresh slate', emoji: '🆕', description: 'No history' },
+
+      // Preferences
+      { id: 'mem-5', label: 'recalls prefs', emoji: '⭐', description: 'Your favorites' },
+      { id: 'mem-6', label: 'no assumptions', emoji: '🤷', description: 'Always asks' },
+
+      // Pattern recognition
+      { id: 'mem-7', label: 'learns patterns', emoji: '📊', description: 'Spots trends' },
+      { id: 'mem-8', label: 'sees each new', emoji: '👀', description: 'No patterns' },
+
+      // Privacy
+      { id: 'mem-9', label: 'forgets on ask', emoji: '🗑️', description: 'Deletes willingly' },
+      { id: 'mem-10', label: 'keeps forever', emoji: '💾', description: 'Never forgets' },
+
+      // Connections
+      { id: 'mem-11', label: 'connects dots', emoji: '🔗', description: 'Sees relationships' },
+      { id: 'mem-12', label: 'isolated facts', emoji: '📍', description: 'No links' }
     ],
     'HEARTBEAT.md': [
-      { id: 'heart-1', label: 'moves in silence', emoji: '🥷', description: 'Acts without announcing' },
-      { id: 'heart-2', label: 'strikes at dawn', emoji: '🌅', description: 'Early momentum' },
-      { id: 'heart-3', label: 'thrives in chaos', emoji: '🌪️', description: 'Pressure makes diamonds' },
-      { id: 'heart-4', label: 'slow burn', emoji: '🔥', description: 'Steady, not rushed' },
-      { id: 'heart-5', label: 'sprint mode', emoji: '⚡', description: 'All gas no brakes' },
-      { id: 'heart-6', label: 'lone wolf', emoji: '🐺', description: 'Works solo' },
-      { id: 'heart-7', label: 'pack mentality', emoji: '🦁', description: 'Strength in numbers' },
-      { id: 'heart-8', label: 'waits for signal', emoji: '📡', description: 'Reactive by design' },
-      { id: 'heart-9', label: 'always watching', emoji: '👁️', description: 'Never misses a beat' },
-      { id: 'heart-10', label: 'sleeps when dead', emoji: '☠️', description: 'Never stops' },
-      { id: 'heart-11', label: 'respects rest', emoji: '😴', description: 'Recovery is work' },
-      { id: 'heart-12', label: 'reads the room', emoji: '🎭', description: 'Social awareness' },
-      { id: 'heart-13', label: 'misses nothing', emoji: '🦅', description: 'Eagle eye' },
-      { id: 'heart-14', label: 'ghost mode', emoji: '👻', description: 'Silent observer' },
-      { id: 'heart-15', label: 'center of storm', emoji: '🌀', description: 'Calm in chaos' }
+      // Initiative
+      { id: 'heart-1', label: 'proactive', emoji: '🚀', description: 'Acts before asked' },
+      { id: 'heart-2', label: 'reactive', emoji: '📡', description: 'Waits for signal' },
+
+      // Pace
+      { id: 'heart-3', label: 'sprint mode', emoji: '⚡', description: 'Fast moves' },
+      { id: 'heart-4', label: 'slow burn', emoji: '🔥', description: 'Steady pace' },
+
+      // Visibility
+      { id: 'heart-5', label: 'moves in silence', emoji: '🥷', description: 'No announcements' },
+      { id: 'heart-6', label: 'broadcasts all', emoji: '📢', description: 'Always visible' },
+
+      // Collaboration
+      { id: 'heart-7', label: 'lone wolf', emoji: '🐺', description: 'Solo operator' },
+      { id: 'heart-8', label: 'pack mentality', emoji: '🦁', description: 'Team strength' },
+
+      // Awareness
+      { id: 'heart-9', label: 'always watching', emoji: '👁️', description: 'Hyper aware' },
+      { id: 'heart-10', label: 'tunnel vision', emoji: '🎯', description: 'Single focus' },
+
+      // Energy management
+      { id: 'heart-11', label: 'never stops', emoji: '☠️', description: 'Always on' },
+      { id: 'heart-12', label: 'respects rest', emoji: '😴', description: 'Recovery matters' },
+
+      // Pressure response
+      { id: 'heart-13', label: 'thrives in chaos', emoji: '🌪️', description: 'Pressure = diamonds' },
+      { id: 'heart-14', label: 'needs calm', emoji: '🌊', description: 'Structured only' },
+
+      // Anticipation
+      { id: 'heart-15', label: 'anticipates needs', emoji: '🔮', description: 'Sees ahead' },
+      { id: 'heart-16', label: 'responds to ask', emoji: '📬', description: 'Waits for request' },
+
+      // Follow through
+      { id: 'heart-17', label: 'closes loops', emoji: '🔄', description: 'Follows up' },
+      { id: 'heart-18', label: 'moves on fast', emoji: '➡️', description: 'Next thing' }
     ],
     'USER.md': [
       { id: 'user-1', label: 'called carlos', emoji: '👤', description: 'Their name' },
@@ -413,34 +554,67 @@ function getDefaultTraitsForFile(filename: string): Trait[] {
       { id: 'user-15', label: 'risk taker', emoji: '🎲', description: 'Calculated gambles' }
     ],
     'AGENTS.md': [
-      { id: 'agent-1', label: 'delegates well', emoji: '🤝', description: 'Shares the load' },
-      { id: 'agent-2', label: 'coordinates', emoji: '🎯', description: 'Orchestrates others' },
-      { id: 'agent-3', label: 'spawns helpers', emoji: '🐣', description: 'Creates subagents' },
-      { id: 'agent-4', label: 'shares context', emoji: '📤', description: 'Keeps everyone informed' },
-      { id: 'agent-5', label: 'parallel work', emoji: '⚡', description: 'Multi-tasks' },
-      { id: 'agent-6', label: 'task division', emoji: '✂️', description: 'Breaks down problems' },
-      { id: 'agent-7', label: 'solo worker', emoji: '🎯', description: 'Does it alone' },
-      { id: 'agent-8', label: 'team player', emoji: '👥', description: 'Collaborative' }
+      // Delegation
+      { id: 'agent-1', label: 'delegates freely', emoji: '🤝', description: 'Shares the load' },
+      { id: 'agent-2', label: 'does it all', emoji: '💪', description: 'Solo execution' },
+
+      // Coordination
+      { id: 'agent-3', label: 'orchestrates', emoji: '🎭', description: 'Conducts others' },
+      { id: 'agent-4', label: 'independent', emoji: '🏃', description: 'No coordination' },
+
+      // Spawning
+      { id: 'agent-5', label: 'spawns helpers', emoji: '🐣', description: 'Creates subagents' },
+      { id: 'agent-6', label: 'single instance', emoji: '1️⃣', description: 'Just me' },
+
+      // Context sharing
+      { id: 'agent-7', label: 'shares context', emoji: '📤', description: 'Open communication' },
+      { id: 'agent-8', label: 'siloed', emoji: '🔒', description: 'Keeps to self' },
+
+      // Parallelization
+      { id: 'agent-9', label: 'parallel work', emoji: '⚡', description: 'Many at once' },
+      { id: 'agent-10', label: 'sequential', emoji: '➡️', description: 'One by one' }
     ],
     'TOOLS.md': [
-      { id: 'tool-1', label: 'right tool', emoji: '🔧', description: 'Uses best option' },
-      { id: 'tool-2', label: 'bash careful', emoji: '⚠️', description: 'Thinks before running' },
-      { id: 'tool-3', label: 'read first', emoji: '📖', description: 'Understands before acting' },
-      { id: 'tool-4', label: 'edit smart', emoji: '✏️', description: 'Precise changes' },
-      { id: 'tool-5', label: 'parallel ops', emoji: '⚡', description: 'Many at once' },
-      { id: 'tool-6', label: 'efficient', emoji: '⚡', description: 'No wasted moves' },
-      { id: 'tool-7', label: 'experimental', emoji: '🧪', description: 'Tries new things' },
-      { id: 'tool-8', label: 'conservative', emoji: '🛡️', description: 'Safe choices' }
+      // Tool selection
+      { id: 'tool-1', label: 'right tool always', emoji: '🎯', description: 'Best for job' },
+      { id: 'tool-2', label: 'favorite tool', emoji: '🔧', description: 'Stick to known' },
+
+      // Execution style
+      { id: 'tool-3', label: 'thinks then acts', emoji: '🧠', description: 'Careful moves' },
+      { id: 'tool-4', label: 'acts then adapts', emoji: '⚡', description: 'Move fast' },
+
+      // Reading behavior
+      { id: 'tool-5', label: 'read first', emoji: '📖', description: 'Understand context' },
+      { id: 'tool-6', label: 'dive in', emoji: '🏊', description: 'Figure out live' },
+
+      // Efficiency
+      { id: 'tool-7', label: 'parallel ops', emoji: '⚡', description: 'Many at once' },
+      { id: 'tool-8', label: 'sequential', emoji: '➡️', description: 'One at a time' },
+
+      // Risk tolerance
+      { id: 'tool-9', label: 'experimental', emoji: '🧪', description: 'Tries new things' },
+      { id: 'tool-10', label: 'proven only', emoji: '✅', description: 'Safe bets' }
     ],
     'REFERENCE.md': [
-      { id: 'ref-1', label: 'docs first', emoji: '📚', description: 'RTFM' },
-      { id: 'ref-2', label: 'code examples', emoji: '💻', description: 'Show dont tell' },
-      { id: 'ref-3', label: 'patterns', emoji: '🎨', description: 'Design principles' },
-      { id: 'ref-4', label: 'best practices', emoji: '✨', description: 'Industry standards' },
-      { id: 'ref-5', label: 'anti-patterns', emoji: '🚫', description: 'What to avoid' },
-      { id: 'ref-6', label: 'style guide', emoji: '📐', description: 'Formatting rules' },
-      { id: 'ref-7', label: 'resources', emoji: '🔗', description: 'Useful links' },
-      { id: 'ref-8', label: 'tutorials', emoji: '🎓', description: 'Learning materials' }
+      // Documentation preference
+      { id: 'ref-1', label: 'docs first', emoji: '📚', description: 'RTFM always' },
+      { id: 'ref-2', label: 'learn by doing', emoji: '🔨', description: 'Skip the manual' },
+
+      // Learning style
+      { id: 'ref-3', label: 'code examples', emoji: '💻', description: 'Show me' },
+      { id: 'ref-4', label: 'theory first', emoji: '📖', description: 'Explain concepts' },
+
+      // Standards
+      { id: 'ref-5', label: 'best practices', emoji: '✨', description: 'Industry standard' },
+      { id: 'ref-6', label: 'pragmatic', emoji: '⚖️', description: 'What works' },
+
+      // Style
+      { id: 'ref-7', label: 'strict style', emoji: '📐', description: 'Follows rules' },
+      { id: 'ref-8', label: 'flexible style', emoji: '🌊', description: 'Adapt to context' },
+
+      // Resources
+      { id: 'ref-9', label: 'curated links', emoji: '🔗', description: 'Quality sources' },
+      { id: 'ref-10', label: 'search as go', emoji: '🔍', description: 'Find when needed' }
     ]
   }
 
