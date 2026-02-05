@@ -83,7 +83,7 @@ export default function KhaledPage() {
       playSound()
       spawnBubble()
       // Delay lobster spawn until after the phrase is said
-      setTimeout(spawnLobster, 1500)
+      setTimeout(spawnLobster, 250)
     }
 
     // Initial trigger after a short delay
@@ -172,7 +172,7 @@ export default function KhaledPage() {
             left: `${lobster.x}%`,
             top: `${lobster.y}%`,
             transform: `translate(-50%, -50%) rotate(${lobster.rotation}deg)`,
-            width: '50px',
+            width: '60px',
             height: 'auto',
           }}
         />

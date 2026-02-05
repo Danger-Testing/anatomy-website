@@ -11,6 +11,7 @@ interface RecommendationItem {
 }
 
 const minigames = [
+  { id: 'khaled2', name: 'Khaled 2', description: 'Feed the real lobsters', href: '/minigames/khaled2' },
   { id: 'curate', name: 'Curate', description: 'Collect and organize' },
   { id: 'dreams', name: 'Dreams', description: 'Explore your subconscious' },
   { id: 'memory', name: 'Memory', description: 'Test your recall' },
@@ -63,11 +64,14 @@ export default function MinigamesPage() {
     }
   }
 
-  function handleMinigameClick(gameId: string) {
+  function handleMinigameClick(gameId: string, href?: string) {
+    if (href) {
+      window.location.href = href
+      return
+    }
     if (gameId === 'curate') {
       handleCurate()
     }
-    // Other minigames can be added here
   }
 
   return (
@@ -94,7 +98,7 @@ export default function MinigamesPage() {
           {minigames.map((game) => (
             <button
               key={game.id}
-              onClick={() => handleMinigameClick(game.id)}
+              onClick={() => handleMinigameClick(game.id, (game as { href?: string }).href)}
               disabled={game.id === 'curate' && curating}
               className="group border border-black bg-white p-6 flex flex-col items-center justify-center aspect-square hover:bg-black hover:text-white transition-colors cursor-pointer disabled:opacity-50"
             >
