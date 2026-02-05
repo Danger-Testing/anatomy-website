@@ -77,5 +77,12 @@ export const DEFAULT_BODY_PARTS: BodyPart[] = [
     label: 'User',
     imageUrl: '/user.png',
     position: { x: 21.21, y: 40.64, width: 100, height: 100 }
+  },
+  {
+    id: 'habits',
+    filename: 'HABITS.md',
+    label: 'Habits',
+    imageUrl: '/habits.png',
+    position: { x: 68, y: 65, width: 100, height: 100 }
   }
 ]

@@ -25,6 +25,7 @@ Your files become body parts:
 | **Soul** | SOUL.md |
 | **Memory** | MEMORY.md |
 | **Heartbeat** | HEARTBEAT.md |
+| **Habits** | HABITS.md — cron jobs, recurring tasks, scheduled behaviors |
 | **Agents** | AGENTS.md |
 | **Tools** | TOOLS.md |
 | **Reference** | REFERENCE.md |
