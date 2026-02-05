@@ -198,8 +198,8 @@ export function TraitEditor({
 
         {/* Footer */}
         <div className="border-t-4 border-black flex justify-between items-center pr-6">
-          {/* Character filters on left - overlapping */}
-          <div className="flex items-center gap-1.5">
+          {/* Character filters on left */}
+          <div className="flex items-center">
             {characters.map((char, index) => (
               <button
                 key={char.id}
@@ -209,16 +209,17 @@ export function TraitEditor({
                   }
                 }}
                 style={{
-                  zIndex: selectedCharacter === char.id ? 100 : 10 - index
+                  zIndex: selectedCharacter === char.id ? 100 : 10 - index,
+                  marginLeft: index === 0 ? 0 : '-1px'
                 }}
-                className={`w-32 h-40 overflow-hidden transition-all cursor-pointer flex-shrink-0 hover:z-[200] ${
+                className={`w-32 h-40 overflow-hidden transition-all cursor-pointer flex-shrink-0 hover:z-[200] hover:scale-105 ${
                   !hasCharacterTraits
                     ? 'grayscale opacity-40'
                     : selectedCharacter === char.id
-                    ? 'scale-110 shadow-lg'
+                    ? 'opacity-100'
                     : selectedCharacter
                     ? 'grayscale opacity-40 hover:opacity-60'
-                    : 'hover:scale-105'
+                    : ''
                 }`}
                 title={char.label}
               >
