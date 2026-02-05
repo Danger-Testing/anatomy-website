@@ -123,7 +123,7 @@ export default function Khaled2Page() {
       setTimeout(() => {
         spawnBubble()
         setTimeout(spawnNextLobster, 500)
-      }, 250)
+      }, 500)
     }
 
     const initialTimeout = setTimeout(trigger, 500)
