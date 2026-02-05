@@ -43,9 +43,10 @@ export async function POST(request: NextRequest) {
       position: count || 1,
       view_url: 'https://lobsteranatomy.com/table'
     })
-  } catch {
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Invalid request'
     return NextResponse.json(
-      { error: 'Invalid request' },
+      { error: message },
       { status: 400 }
     )
   }

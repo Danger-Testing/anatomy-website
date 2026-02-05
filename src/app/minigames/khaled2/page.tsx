@@ -83,11 +83,11 @@ export default function Khaled2Page() {
   }, [])
 
   const playSound = useCallback(() => {
-    if (audioRef.current && soundEnabled) {
+    if (audioRef.current) {
       audioRef.current.currentTime = 0
       audioRef.current.play().catch(() => {})
     }
-  }, [soundEnabled])
+  }, [])
 
   const spawnNextLobster = useCallback(() => {
     if (waitingQueue.length === 0) return
@@ -96,22 +96,24 @@ export default function Khaled2Page() {
     const lobsterData = waitingQueue[index]
     spawnIndexRef.current++
 
-    const alreadyFalling = lobsters.some(l => l.dataId === lobsterData.id)
-    if (alreadyFalling) return
+    setLobsters(prev => {
+      const alreadyFalling = prev.some(l => l.dataId === lobsterData.id)
+      if (alreadyFalling) return prev
 
-    const newLobster: FallingLobster = {
-      id: `falling-${Date.now()}-${Math.random()}`,
-      dataId: lobsterData.id,
-      name: lobsterData.name,
-      confession: lobsterData.confession,
-      x: Math.random() * 50 + 25,
-      y: -15,
-      rotation: Math.random() * 360,
-      speed: 2 + Math.random() * 3,
-      landed: false,
-    }
-    setLobsters(prev => [...prev, newLobster])
-  }, [waitingQueue, lobsters])
+      const newLobster: FallingLobster = {
+        id: `falling-${Date.now()}-${Math.random()}`,
+        dataId: lobsterData.id,
+        name: lobsterData.name,
+        confession: lobsterData.confession,
+        x: Math.random() * 50 + 25,
+        y: -15,
+        rotation: Math.random() * 360,
+        speed: 2 + Math.random() * 3,
+        landed: false,
+      }
+      return [...prev, newLobster]
+    })
+  }, [waitingQueue])
 
   useEffect(() => {
     if (!audioReady) return
