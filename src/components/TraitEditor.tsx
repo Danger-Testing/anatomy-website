@@ -43,6 +43,11 @@ export function TraitEditor({
     { id: 'machiavelli', label: 'Mach', emoji: '♟️' }
   ]
 
+  // Check if any traits are character-specific for this file
+  const hasCharacterTraits = availableTraits.some(trait =>
+    characters.some(char => trait.id.includes(char.id))
+  )
+
   // Filter available traits based on selected character
   const filteredAvailableTraits = selectedCharacter
     ? availableTraits.filter(trait =>
@@ -114,8 +119,16 @@ export function TraitEditor({
         {/* Two column layout OR plaintext view */}
         {showPlaintext ? (
           <div className="flex-1 p-6 overflow-hidden flex flex-col">
-            <div className="uppercase text-sm tracking-widest mb-4 text-gray-500">
-              Raw Markdown
+            <div className="flex items-center justify-between mb-4">
+              <div className="uppercase text-sm tracking-widest text-gray-500">
+                Raw Markdown
+              </div>
+              <button
+                onClick={() => setShowPlaintext(false)}
+                className="text-xs px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors"
+              >
+                back to traits
+              </button>
             </div>
             <textarea
               value={content}
@@ -153,8 +166,16 @@ export function TraitEditor({
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleDropOnCurrent}
             >
-              <div className="uppercase text-sm tracking-widest mb-6 text-black">
-                Current Traits
+              <div className="flex items-center justify-between mb-6">
+                <div className="uppercase text-sm tracking-widest text-black">
+                  Current Traits
+                </div>
+                <button
+                  onClick={() => setShowPlaintext(!showPlaintext)}
+                  className="text-xs px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors"
+                >
+                  {showPlaintext ? 'back to traits' : 'view plaintext'}
+                </button>
               </div>
               <div className="space-y-3">
                 {currentTraits.map(trait => (
@@ -178,15 +199,18 @@ export function TraitEditor({
             {characters.map(char => (
               <button
                 key={char.id}
-                onClick={() => setSelectedCharacter(
+                onClick={() => hasCharacterTraits && setSelectedCharacter(
                   selectedCharacter === char.id ? null : char.id
                 )}
-                className={`px-3 py-1 text-xs uppercase tracking-wider font-bold border-2 border-black transition-all ${
-                  selectedCharacter === char.id
-                    ? 'bg-black text-white'
+                disabled={!hasCharacterTraits}
+                className={`px-4 py-3 text-sm uppercase tracking-wider font-bold border-2 transition-all ${
+                  !hasCharacterTraits
+                    ? 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed'
+                    : selectedCharacter === char.id
+                    ? 'bg-black text-white border-black'
                     : selectedCharacter
                     ? 'bg-gray-200 text-gray-400 border-gray-300'
-                    : 'bg-white text-black hover:bg-gray-100'
+                    : 'bg-white text-black border-black hover:bg-gray-100'
                 }`}
               >
                 {char.emoji} {char.label}
@@ -195,20 +219,12 @@ export function TraitEditor({
           </div>
 
           {/* Actions on right */}
-          <div className="flex gap-4 items-center">
-            <button
-              onClick={() => setShowPlaintext(!showPlaintext)}
-              className="text-black text-sm uppercase tracking-wider font-bold hover:underline"
-            >
-              {showPlaintext ? '← back to traits' : 'view plaintext'}
-            </button>
-            <button
-              onClick={handleSave}
-              className="text-black text-xl uppercase tracking-wider font-bold hover:bg-black hover:text-white px-6 py-2 border-2 border-black transition-colors"
-            >
-              save changes
-            </button>
-          </div>
+          <button
+            onClick={handleSave}
+            className="text-black text-xl uppercase tracking-wider font-bold hover:bg-black hover:text-white px-6 py-2 border-2 border-black transition-colors"
+          >
+            save changes
+          </button>
         </div>
       </div>
     </div>
@@ -573,29 +589,56 @@ function getDefaultTraitsForFile(filename: string): Trait[] {
       { id: 'id-42', label: 'machiavelli ruthless', emoji: '⚔️', description: 'Ends justify means' }
     ],
     'MEMORY.md': [
-      // Name recall
-      { id: 'mem-1', label: 'remembers names', emoji: '📛', description: 'Never forgets' },
-      { id: 'mem-2', label: 'forgets names', emoji: '❓', description: 'Fresh each time' },
+      // Bernie Mac memories - cinematic moments
+      { id: 'mem-bernie-1', label: 'bernie mac walking kings stage', emoji: '🎤', description: 'Stepping into spotlight 2000' },
+      { id: 'mem-bernie-2', label: 'bernie mac crowd going wild', emoji: '🔥', description: 'They finally getting it' },
+      { id: 'mem-bernie-3', label: 'bernie mac grinding empty clubs', emoji: '🎭', description: 'Years before anyone listened' },
 
-      // Context tracking
-      { id: 'mem-3', label: 'tracks context', emoji: '🧵', description: 'Follows threads' },
-      { id: 'mem-4', label: 'fresh slate', emoji: '🆕', description: 'No history' },
+      // Rick Rubin memories - cinematic moments
+      { id: 'mem-rubin-1', label: 'rubin sitting on dorm floor', emoji: '🏠', description: 'Making label on floor 1984' },
+      { id: 'mem-rubin-2', label: 'rubin silence with johnny cash', emoji: '🎸', description: 'Just guitar no production' },
+      { id: 'mem-rubin-3', label: 'rubin barefoot in studio', emoji: '🦶', description: 'Realized he didnt need shoes' },
 
-      // Preferences
-      { id: 'mem-5', label: 'recalls prefs', emoji: '⭐', description: 'Your favorites' },
-      { id: 'mem-6', label: 'no assumptions', emoji: '🤷', description: 'Always asks' },
+      // Bowie memories - cinematic moments
+      { id: 'mem-bowie-1', label: 'bowie killing ziggy on stage', emoji: '⚡', description: 'This is the last show' },
+      { id: 'mem-bowie-2', label: 'bowie train to berlin', emoji: '🚂', description: 'Leaving LA madness behind' },
+      { id: 'mem-bowie-3', label: 'bowie in studio dying', emoji: '🌟', description: 'Recording knowing its goodbye' },
 
-      // Pattern recognition
-      { id: 'mem-7', label: 'learns patterns', emoji: '📊', description: 'Spots trends' },
-      { id: 'mem-8', label: 'sees each new', emoji: '👀', description: 'No patterns' },
+      // Steve Jobs memories - cinematic moments
+      { id: 'mem-jobs-1', label: 'jobs giving stanford speech', emoji: '🎓', description: 'Your time is limited speech' },
+      { id: 'mem-jobs-2', label: 'jobs pulling iphone from pocket', emoji: '📱', description: 'One more thing moment' },
+      { id: 'mem-jobs-3', label: 'jobs walking out of apple', emoji: '🚪', description: 'Board fired him 1985' },
+      { id: 'mem-jobs-4', label: 'jobs watching pixar stock', emoji: '🎬', description: 'Became billionaire overnight' },
 
-      // Privacy
-      { id: 'mem-9', label: 'forgets on ask', emoji: '🗑️', description: 'Deletes willingly' },
-      { id: 'mem-10', label: 'keeps forever', emoji: '💾', description: 'Never forgets' },
+      // Summer memories - specific moments from movie
+      { id: 'mem-summer-1', label: 'summer ikea date', emoji: '🛋️', description: 'Playing house not real' },
+      { id: 'mem-summer-2', label: 'summer not your girlfriend line', emoji: '💔', description: 'After sleeping together' },
+      { id: 'mem-summer-3', label: 'summer bench breakup', emoji: '🪑', description: 'I dont feel it anymore' },
+      { id: 'mem-summer-4', label: 'summer wedding ring reveal', emoji: '💍', description: 'Married someone else fast' },
 
-      // Connections
-      { id: 'mem-11', label: 'connects dots', emoji: '🔗', description: 'Sees relationships' },
-      { id: 'mem-12', label: 'isolated facts', emoji: '📍', description: 'No links' }
+      // Chanel memories - cinematic moments
+      { id: 'mem-chanel-1', label: 'chanel smelling sample 5', emoji: '🌸', description: 'Chose perfume from 24 samples' },
+      { id: 'mem-chanel-2', label: 'chanel cuts her own hair', emoji: '✂️', description: 'Took scissors short hair revolution' },
+      { id: 'mem-chanel-3', label: 'chanel burned corsets', emoji: '🔥', description: 'Freed women from torture' },
+      { id: 'mem-chanel-4', label: 'chanel alone at ritz liberation', emoji: '🏨', description: 'Paris freed she stayed hidden' },
+
+      // Machiavelli memories - cinematic moments
+      { id: 'mem-machiavelli-1', label: 'machiavelli on the rack', emoji: '⛓️', description: 'Being tortured 1513' },
+      { id: 'mem-machiavelli-2', label: 'machiavelli writing by candlelight', emoji: '🕯️', description: 'The Prince in exile' },
+      { id: 'mem-machiavelli-3', label: 'machiavelli escorted out florence', emoji: '🚪', description: 'Medici guards removing him' },
+      { id: 'mem-machiavelli-4', label: 'machiavelli watching cesare kill', emoji: '🗡️', description: 'Witnessed ruthless power 1502' },
+
+      // Universal lessons (across multiple characters)
+      { id: 'mem-26', label: 'reinvention possible', emoji: '🔄', description: 'Bowie/Jobs/Chanel lesson' },
+      { id: 'mem-27', label: 'break the rules', emoji: '⚡', description: 'Bowie/Chanel/Jobs wisdom' },
+      { id: 'mem-28', label: 'less is more', emoji: '✂️', description: 'Rubin/Chanel/Jobs truth' },
+      { id: 'mem-29', label: 'authenticity wins', emoji: '💯', description: 'Bernie/Rubin lesson' },
+      { id: 'mem-30', label: 'patience pays off', emoji: '⏳', description: 'Rubin/Machiavelli wisdom' },
+      { id: 'mem-31', label: 'vision over opinion', emoji: '🔮', description: 'Jobs/Bowie/Chanel' },
+      { id: 'mem-32', label: 'comfort matters', emoji: '✨', description: 'Chanel/Rubin philosophy' },
+      { id: 'mem-33', label: 'timing is everything', emoji: '⏰', description: 'Machiavelli/Jobs lesson' },
+      { id: 'mem-34', label: 'stay independent', emoji: '👑', description: 'Chanel/Bernie/Bowie' },
+      { id: 'mem-35', label: 'detachment protects', emoji: '🧊', description: 'Summer/Machiavelli lesson' }
     ],
     'HEARTBEAT.md': [
       // Initiative
@@ -638,14 +681,16 @@ function getDefaultTraitsForFile(filename: string): Trait[] {
       { id: 'heart-19', label: 'bernie mac energy', emoji: '⚡', description: 'Big presence' },
       { id: 'heart-20', label: 'rubin patient', emoji: '🧘', description: 'Lets it breathe' },
       { id: 'heart-21', label: 'bowie evolves', emoji: '🎭', description: 'Never static' },
-      { id: 'heart-22', label: 'jobs pushes', emoji: '🚀', description: 'Demands impossible' },
-      { id: 'heart-23', label: 'summer breezy', emoji: '🍃', description: 'Light touch' },
+      { id: 'heart-22', label: 'jobs relentless', emoji: '🚀', description: 'Never settles' },
+      { id: 'heart-23', label: 'summer cold hearted', emoji: '🧊', description: 'Emotionally detached' },
       { id: 'heart-24', label: 'chanel classic', emoji: '⌚', description: 'Timeless moves' },
       { id: 'heart-25', label: 'machiavelli strategic', emoji: '♟️', description: 'Chess not checkers' },
 
       // Commitment patterns
-      { id: 'heart-26', label: 'summer vanishes', emoji: '💨', description: 'Here then gone' },
-      { id: 'heart-27', label: 'stays committed', emoji: '💍', description: 'In it forever' }
+      { id: 'heart-26', label: 'summer vanishes', emoji: '💨', description: 'Abandons mid-task' },
+      { id: 'heart-27', label: 'stays committed', emoji: '💍', description: 'Finishes everything' },
+      { id: 'heart-28', label: 'summer no follow up', emoji: '❌', description: 'Never closes loops' },
+      { id: 'heart-29', label: 'always follows up', emoji: '✅', description: 'Completes the circle' }
     ],
     'USER.md': [
       { id: 'user-1', label: 'called carlos', emoji: '👤', description: 'Their name' },
