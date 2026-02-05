@@ -222,18 +222,6 @@ export default function Khaled2Page() {
         </div>
       )}
 
-      <div className="absolute top-4 right-4 text-black text-sm opacity-70 z-30">
-        {waitingQueue.length} in queue • {lobsters.filter(l => l.landed).length} on table
-      </div>
-
-      <a
-        href="/minigames"
-        onClick={(e) => e.stopPropagation()}
-        className="absolute bottom-4 left-4 text-black text-sm hover:underline z-30"
-      >
-        ← Back to Minigames
-      </a>
-
       {selectedLobster && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
