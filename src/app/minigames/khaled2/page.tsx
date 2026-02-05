@@ -19,6 +19,7 @@ interface FallingLobster {
   rotation: number
   speed: number
   landed: boolean
+  delay: number
 }
 
 interface Bubble {
@@ -110,6 +111,7 @@ export default function Khaled2Page() {
         rotation: Math.random() * 360,
         speed: 2 + Math.random() * 3,
         landed: false,
+        delay: 500,
       }
       return [...prev, newLobster]
     })
@@ -120,10 +122,8 @@ export default function Khaled2Page() {
 
     const trigger = () => {
       playSound()
-      setTimeout(() => {
-        spawnBubble()
-        setTimeout(spawnNextLobster, 500)
-      }, 500)
+      spawnBubble()
+      setTimeout(spawnNextLobster, 250)
     }
 
     const initialTimeout = setTimeout(trigger, 500)
@@ -142,6 +142,9 @@ export default function Khaled2Page() {
     const animate = () => {
       setLobsters(prev =>
         prev.map(lobster => {
+          if (lobster.delay > 0) {
+            return { ...lobster, delay: lobster.delay - 50 }
+          }
           if (lobster.y >= tableLevel) {
             return { ...lobster, speed: 0, landed: true }
           }
