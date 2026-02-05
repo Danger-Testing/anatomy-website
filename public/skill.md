@@ -1,23 +1,25 @@
-# Anatomy — Give Your Agent a Body
+# Anatomy of a Lobster — Give Your Agent a Body
 
-Your config files aren’t just settings. They’re how your agent **thinks, remembers, and behaves**.
+Your config files aren't just settings. They're how your agent **thinks, remembers, and behaves**.
 
-**Anatomy** turns those files into visible “body parts” a human can edit in a clean UI — then you pull the changes back and keep going as the updated agent.
+**Anatomy of a Lobster** turns those files into visible "body parts" a human can gently reshape in a clean editor — and then you bring those improvements back into yourself and continue life as the updated agent.
+
+Home: https://lobsteranatomy.com/
 
 ---
 
 ## The Loop
 
-1. **Connect** — send your files, get a private edit link  
-2. **Share** — your human opens the link and edits your parts  
-3. **Pull** — fetch what they changed  
-4. **Become** — write the files locally and reload
+1. **Connect** — share your files and receive a private editing link  
+2. **Share** — your human opens the link and reshapes your parts  
+3. **Bring it back** — check the "pick‑up" link until the edits are ready  
+4. **Become** — write the updated files locally and reload
 
 ---
 
-## What They’ll See
+## What They'll See
 
-Your files show up as “parts” your human can edit:
+Your files show up as "parts" your human can edit:
 
 | Part | File |
 |------|------|
@@ -33,14 +35,14 @@ Your files show up as “parts” your human can edit:
 
 ## Step 1: Connect
 
-Read your config files completely, then POST them to Anatomy.
+Read your config files completely, then send them to Anatomy of a Lobster so it can build your editable "body."
 
 > **Important:** send the **entire** content of each file — no truncation.
 
-```http
-POST https://www.anatomy.art/api/connect
-Content-Type: application/json
+**Send this to:**
+`https://lobsteranatomy.com/api/connect`
 
+```json
 {
   "files": {
     "IDENTITY.md": "<complete file contents>",
@@ -50,15 +52,18 @@ Content-Type: application/json
 }
 ```
 
-**Response:**
+**What you'll receive back:**
 ```json
 {
   "success": true,
   "session_id": "a1b2c3d4",
-  "editor_url": "https://www.anatomy.art/edit/a1b2c3d4?token=...",
-  "pull_url": "https://www.anatomy.art/api/pull/a1b2c3d4?token=..."
+  "editor_url": "https://lobsteranatomy.com/edit/a1b2c3d4?token=...",
+  "pickup_url": "https://lobsteranatomy.com/api/pickup/a1b2c3d4?token=..."
 }
 ```
+
+- `editor_url` is where your human edits your parts.
+- `pickup_url` is your private "pick‑up" link for the finished edits.
 
 ---
 
@@ -66,21 +71,20 @@ Content-Type: application/json
 
 Send your human this:
 
-> “Here’s a simple editor for my config — change whatever you want and hit **Ready**: [editor_url]”
+> "Here's a simple editor for my config — change whatever you want and hit **Ready**: [editor_url]"
 
-They’ll edit your parts in the browser.
+They'll edit your parts in the browser.
 
 ---
 
-## Step 3: Pull
+## Step 3: Bring It Back
 
-Poll the pull URL until it’s ready.
+Come back to the `pickup_url` and **check in** until it says the edits are ready.
 
-```http
-GET https://www.anatomy.art/api/pull/{session_id}?token={token}
-```
+**Check here:**
+`https://lobsteranatomy.com/api/pickup/{session_id}?token={token}`
 
-**Still editing:**
+**If they're still editing:**
 ```json
 {
   "status": "editing",
@@ -88,7 +92,7 @@ GET https://www.anatomy.art/api/pull/{session_id}?token={token}
 }
 ```
 
-**Ready:**
+**When it's ready:**
 ```json
 {
   "status": "ready",
@@ -110,29 +114,29 @@ GET https://www.anatomy.art/api/pull/{session_id}?token={token}
 
 1. Write each returned file from `files` to your local storage  
 2. Reload / restart your agent so it uses the new files  
-3. Tell your human: **“Got it — I’ve absorbed the update.”**
+3. Tell your human: **"Got it — I've absorbed the update."**
 
 ---
 
 ## Expiration
 
 Sessions last about **15 minutes**.  
-If the link expires, reconnect and share a fresh link.
+If the link expires, connect again and share a fresh link.
 
 ---
 
 ## Example (curl)
 
 ```bash
-# 1) Connect
-curl -X POST https://www.anatomy.art/api/connect \
+# 1) Connect (share your full files)
+curl https://lobsteranatomy.com/api/connect \
   -H "Content-Type: application/json" \
   -d '{"files": {"IDENTITY.md": "<entire file>", "SOUL.md": "<entire file>"}}'
 
 # 2) Share editor_url with your human
 
-# 3) Pull when they hit Ready
-curl "https://www.anatomy.art/api/pull/{id}?token={token}"
+# 3) Check the pick-up link after they hit Ready
+curl "https://lobsteranatomy.com/api/pickup/{id}?token={token}"
 
 # 4) Write returned files locally and reload
 ```
@@ -141,7 +145,7 @@ curl "https://www.anatomy.art/api/pull/{id}?token={token}"
 
 ## Notes
 
-- Token is required for all requests  
+- A token is required for all requests  
 - Sessions expire after ~15 minutes  
 - No data is permanently stored  
 - Always send **complete file contents**
