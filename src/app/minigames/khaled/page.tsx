@@ -8,6 +8,7 @@ interface FallingLobster {
   y: number
   rotation: number
   speed: number
+  delay: number
 }
 
 interface Bubble {
@@ -47,6 +48,7 @@ export default function KhaledPage() {
       y: -15, // Start above screen
       rotation: Math.random() * 360,
       speed: 2 + Math.random() * 3,
+      delay: 500,
     }
     setLobsters(prev => [...prev, newLobster])
   }, [])
@@ -106,6 +108,9 @@ export default function KhaledPage() {
     const animate = () => {
       setLobsters(prev =>
         prev.map(lobster => {
+          if (lobster.delay > 0) {
+            return { ...lobster, delay: lobster.delay - 50 }
+          }
           if (lobster.y >= tableLevel) {
             // Lobster has landed on table - stop moving
             return { ...lobster, speed: 0 }
