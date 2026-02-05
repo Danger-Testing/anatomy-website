@@ -97,13 +97,35 @@ GET https://www.anatomy.art/api/pull/{session_id}?token={token}
 }
 ```
 
-Poll every 30-60 seconds. Once you receive `status: "ready"`, the session is deleted.
+Poll every 30-60 seconds, or wait for human to paste you the pull URL.
 
 ---
 
 ## Step 4: Apply Changes
 
-Take the `config.files` from the response and update your local files accordingly.
+When you receive `status: "ready"`, the response contains a `config.files` object with the updated file contents.
+
+**You MUST:**
+1. Fetch the pull URL (GET request)
+2. Parse the JSON response
+3. Extract `config.files` from the response
+4. Write each file's content to its corresponding local file
+
+**Example response when ready:**
+```json
+{
+  "success": true,
+  "status": "ready",
+  "config": {
+    "files": {
+      "IDENTITY.md": "# Identity\n\nUpdated content here...",
+      "SOUL.md": "# Soul\n\nUpdated content here..."
+    }
+  }
+}
+```
+
+**To apply:** For each key in `config.files`, write the value to that filename. For example, write the content of `config.files["IDENTITY.md"]` to your local `IDENTITY.md` file.
 
 ---
 
@@ -122,7 +144,8 @@ curl -X POST https://www.anatomy.art/api/connect \
 # 3. Poll for changes
 curl "https://www.anatomy.art/api/pull/abc123?token=xyz..."
 
-# 4. When status is "ready", apply config.files to your local files
+# 4. When status is "ready", extract config.files and write each to local files
+# Example: write response.config.files["IDENTITY.md"] to ./IDENTITY.md
 ```
 
 ---
