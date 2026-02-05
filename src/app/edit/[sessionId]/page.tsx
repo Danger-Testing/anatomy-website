@@ -212,6 +212,12 @@ export default function Editor() {
             <p className="text-gray-400 text-sm">
               The session may have expired. Ask your agent for a new link.
             </p>
+            <a
+              href="/"
+              className="inline-block mt-4 px-6 py-3 bg-black text-white uppercase tracking-wider font-bold hover:bg-gray-800 transition-colors"
+            >
+              Go Home
+            </a>
           </div>
         </main>
       </div>
