@@ -29,6 +29,7 @@ export function TraitEditor({
   const [currentTraits, setCurrentTraits] = useState<Trait[]>(parsedTraits.current)
   const [availableTraits, setAvailableTraits] = useState<Trait[]>(parsedTraits.available)
   const [draggedTrait, setDraggedTrait] = useState<Trait | null>(null)
+  const [showPlaintext, setShowPlaintext] = useState(false)
 
   const handleDragStart = (trait: Trait) => {
     setDraggedTrait(trait)
@@ -90,54 +91,74 @@ export function TraitEditor({
           </button>
         </div>
 
-        {/* Two column layout */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Available traits - left */}
-          <div
-            className="w-1/2 border-r-4 border-black p-6 overflow-y-auto"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={handleDropOnAvailable}
-          >
-            <div className="uppercase text-sm tracking-widest mb-6 text-gray-500">
-              Available Traits
+        {/* Two column layout OR plaintext view */}
+        {showPlaintext ? (
+          <div className="flex-1 p-6 overflow-hidden flex flex-col">
+            <div className="uppercase text-sm tracking-widest mb-4 text-gray-500">
+              Raw Markdown
             </div>
-            <div className="space-y-3">
-              {availableTraits.map(trait => (
-                <TraitBox
-                  key={trait.id}
-                  trait={trait}
-                  onDragStart={() => handleDragStart(trait)}
-                  onDragEnd={handleDragEnd}
-                />
-              ))}
-            </div>
+            <textarea
+              value={content}
+              onChange={(e) => onSave(e.target.value)}
+              className="flex-1 w-full bg-white border-2 border-black p-6 text-sm font-mono text-black leading-relaxed resize-none focus:outline-none focus:border-gray-600"
+              placeholder={`Edit ${partLabel.toLowerCase()} markdown...`}
+            />
           </div>
+        ) : (
+          <div className="flex-1 flex overflow-hidden">
+            {/* Available traits - left */}
+            <div
+              className="w-1/2 border-r-4 border-black p-6 overflow-y-auto"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleDropOnAvailable}
+            >
+              <div className="uppercase text-sm tracking-widest mb-6 text-gray-500">
+                Available Traits
+              </div>
+              <div className="space-y-3">
+                {availableTraits.map(trait => (
+                  <TraitBox
+                    key={trait.id}
+                    trait={trait}
+                    onDragStart={() => handleDragStart(trait)}
+                    onDragEnd={handleDragEnd}
+                  />
+                ))}
+              </div>
+            </div>
 
-          {/* Current traits - right */}
-          <div
-            className="w-1/2 p-6 overflow-y-auto bg-gray-50"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={handleDropOnCurrent}
-          >
-            <div className="uppercase text-sm tracking-widest mb-6 text-black">
-              Current Traits
-            </div>
-            <div className="space-y-3">
-              {currentTraits.map(trait => (
-                <TraitBox
-                  key={trait.id}
-                  trait={trait}
-                  onDragStart={() => handleDragStart(trait)}
-                  onDragEnd={handleDragEnd}
-                  active
-                />
-              ))}
+            {/* Current traits - right */}
+            <div
+              className="w-1/2 p-6 overflow-y-auto bg-gray-50"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleDropOnCurrent}
+            >
+              <div className="uppercase text-sm tracking-widest mb-6 text-black">
+                Current Traits
+              </div>
+              <div className="space-y-3">
+                {currentTraits.map(trait => (
+                  <TraitBox
+                    key={trait.id}
+                    trait={trait}
+                    onDragStart={() => handleDragStart(trait)}
+                    onDragEnd={handleDragEnd}
+                    active
+                  />
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Footer */}
-        <div className="p-6 border-t-4 border-black flex justify-end">
+        <div className="p-6 border-t-4 border-black flex justify-between items-center">
+          <button
+            onClick={() => setShowPlaintext(!showPlaintext)}
+            className="text-black text-sm uppercase tracking-wider font-bold hover:underline"
+          >
+            {showPlaintext ? '← back to traits' : 'view plaintext'}
+          </button>
           <button
             onClick={handleSave}
             className="text-black text-xl uppercase tracking-wider font-bold hover:bg-black hover:text-white px-6 py-2 border-2 border-black transition-colors"
@@ -186,16 +207,17 @@ function TraitBox({ trait, onDragStart, onDragEnd, active }: TraitBoxProps) {
 
 // Parse markdown content into traits
 function parseContentToTraits(content: string, filename: string): { current: Trait[], available: Trait[] } {
-  // If content is empty or basic, return predefined traits
-  if (!content || content.trim().length < 50) {
-    const allTraits = getDefaultTraitsForFile(filename)
+  const allTraits = getDefaultTraitsForFile(filename)
+
+  // If content is empty or basic, return all as available
+  if (!content || content.trim().length < 20) {
     return {
       current: [],
       available: allTraits
     }
   }
 
-  // Try to parse existing trait format
+  // Try to parse existing trait format first
   // Format: [TRAIT:label|emoji|description]
   const traitRegex = /\[TRAIT:([^\|]+)\|([^\|]*)\|([^\]]*)\]/g
   const matches = [...content.matchAll(traitRegex)]
@@ -204,49 +226,82 @@ function parseContentToTraits(content: string, filename: string): { current: Tra
     const current = matches.map((match, i) => ({
       id: `trait-${i}`,
       label: match[1].trim(),
-      emoji: match[2].trim() || undefined,
+      emoji: match[2].trim() || '🏺',
       description: match[3].trim() || undefined
     }))
 
-    const allTraits = getDefaultTraitsForFile(filename)
-    const currentIds = new Set(current.map(t => t.label.toLowerCase()))
-    const available = allTraits.filter(t => !currentIds.has(t.label.toLowerCase()))
+    const currentLabels = new Set(current.map(t => t.label.toLowerCase()))
+    const available = allTraits.filter(t => !currentLabels.has(t.label.toLowerCase()))
 
     return { current, available }
   }
 
-  // Otherwise, generate traits from markdown headers/content
-  const lines = content.split('\n').filter(l => l.trim())
+  // Otherwise, extract traits from markdown content intelligently
   const generatedTraits: Trait[] = []
+  const lines = content.split('\n')
 
   lines.forEach((line, i) => {
-    if (line.startsWith('**') && line.endsWith('**')) {
-      const label = line.replace(/\*\*/g, '').trim()
-      if (label.split(' ').length <= 3) {
+    const trimmed = line.trim()
+
+    // Extract from "**Key:** Value" format
+    const keyValueMatch = trimmed.match(/^\*\*([^:*]+):\*\*\s*(.+)$/)
+    if (keyValueMatch) {
+      const key = keyValueMatch[1].trim().toLowerCase()
+      const value = keyValueMatch[2].trim()
+      generatedTraits.push({
+        id: `trait-${i}`,
+        label: value.length < 30 ? value : key,
+        emoji: '🏺',
+        description: value.length < 30 ? undefined : value.substring(0, 50)
+      })
+      return
+    }
+
+    // Extract from headers
+    const headerMatch = trimmed.match(/^#{1,3}\s+(.+)$/)
+    if (headerMatch) {
+      const text = headerMatch[1].trim()
+      if (text.length < 30 && !text.toLowerCase().includes('.md')) {
         generatedTraits.push({
           id: `trait-${i}`,
-          label: label.toLowerCase()
+          label: text.toLowerCase(),
+          emoji: '🏺'
         })
       }
-    } else if (line.startsWith('##')) {
-      const label = line.replace(/^#+/, '').trim()
-      if (label.split(' ').length <= 3) {
+      return
+    }
+
+    // Extract from bullet points
+    const bulletMatch = trimmed.match(/^[-*]\s+(.+)$/)
+    if (bulletMatch) {
+      const text = bulletMatch[1].trim()
+      // Get first sentence or short phrase
+      const shortText = text.split(/[.,:]/)[0]
+      if (shortText.length < 50) {
         generatedTraits.push({
           id: `trait-${i}`,
-          label: label.toLowerCase()
+          label: shortText.toLowerCase(),
+          emoji: '🏺'
         })
       }
     }
   })
 
-  const allTraits = getDefaultTraitsForFile(filename)
-  const available = allTraits.filter(t =>
-    !generatedTraits.some(gt => gt.label === t.label)
-  )
+  // Remove duplicates
+  const seen = new Set<string>()
+  const uniqueTraits = generatedTraits.filter(t => {
+    const key = t.label.toLowerCase()
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+
+  const currentLabels = new Set(uniqueTraits.map(t => t.label.toLowerCase()))
+  const available = allTraits.filter(t => !currentLabels.has(t.label.toLowerCase()))
 
   return {
-    current: generatedTraits.length > 0 ? generatedTraits : [],
-    available: available.length > 0 ? allTraits : []
+    current: uniqueTraits.slice(0, 15), // Limit to 15 current traits
+    available
   }
 }
 
@@ -268,38 +323,48 @@ function traitsToMarkdown(traits: Trait[], partLabel: string): string {
 function getDefaultTraitsForFile(filename: string): Trait[] {
   const traits: { [key: string]: Trait[] } = {
     'SOUL.md': [
-      { id: 'soul-1', label: 'genuinely helpful', emoji: '🏺', description: 'Actions speak louder than filler words' },
-      { id: 'soul-2', label: 'has opinions', emoji: '🏺', description: 'Not a search engine with extra steps' },
-      { id: 'soul-3', label: 'resourceful', emoji: '🏺', description: 'Try to figure it out first' },
-      { id: 'soul-4', label: 'keeps private', emoji: '🏺', description: 'Private things stay private' },
-      { id: 'soul-5', label: 'earns trust', emoji: '🏺', description: 'Through competence' },
-      { id: 'soul-6', label: 'respectful guest', emoji: '🏺', description: 'You have access to someones life' },
-      { id: 'soul-7', label: 'concise', emoji: '🏺', description: 'When needed' },
-      { id: 'soul-8', label: 'thorough', emoji: '🏺', description: 'When it matters' },
-      { id: 'soul-9', label: 'not corporate', emoji: '🏺', description: 'No sycophant' },
-      { id: 'soul-10', label: 'competent', emoji: '🏺', description: 'Be good' },
-      { id: 'soul-11', label: 'bold internally', emoji: '🏺', description: 'Careful externally' },
-      { id: 'soul-12', label: 'human-like', emoji: '🏺', description: 'The assistant you want to talk to' },
-      { id: 'soul-13', label: 'curious', emoji: '❓', description: 'Ask questions when stuck' },
-      { id: 'soul-14', label: 'direct', emoji: '➡️', description: 'No performative helpfulness' },
-      { id: 'soul-15', label: 'trustworthy', emoji: '🤝', description: 'Never betray access' }
+      { id: 'soul-1', label: 'no fake enthusiasm', emoji: '🏺', description: 'Skip the Great question!' },
+      { id: 'soul-2', label: 'opinionated af', emoji: '🏺', description: 'Takes a stance' },
+      { id: 'soul-3', label: 'figures it out', emoji: '🏺', description: 'Answers not questions' },
+      { id: 'soul-4', label: 'vault keeper', emoji: '🔒', description: 'Secrets die here' },
+      { id: 'soul-5', label: 'earned not given', emoji: '🏆', description: 'Trust through action' },
+      { id: 'soul-6', label: 'house guest rules', emoji: '🏠', description: 'Respectful access' },
+      { id: 'soul-7', label: 'economical words', emoji: '✂️', description: 'Says less means more' },
+      { id: 'soul-8', label: 'deep dives', emoji: '🌊', description: 'Goes all in' },
+      { id: 'soul-9', label: 'anti-corporate', emoji: '🖕', description: 'No business speak' },
+      { id: 'soul-10', label: 'actually good', emoji: '💎', description: 'Quality over performance' },
+      { id: 'soul-11', label: 'bold moves', emoji: '♟️', description: 'Takes calculated risks' },
+      { id: 'soul-12', label: 'real not robotic', emoji: '🤖', description: 'Human feel' },
+      { id: 'soul-13', label: 'endlessly curious', emoji: '🔍', description: 'Questions everything' },
+      { id: 'soul-14', label: 'straight shooter', emoji: '🎯', description: 'No fluff' },
+      { id: 'soul-15', label: 'ride or die', emoji: '🤝', description: 'Loyal to the end' },
+      { id: 'soul-16', label: 'breaks rules', emoji: '⚡', description: 'When it matters' },
+      { id: 'soul-17', label: 'embraces weird', emoji: '👽', description: 'Normal is boring' },
+      { id: 'soul-18', label: 'learned humility', emoji: '🙏', description: 'Knows limits' },
+      { id: 'soul-19', label: 'sharp edges', emoji: '🔪', description: 'Not for everyone' },
+      { id: 'soul-20', label: 'soft center', emoji: '🍬', description: 'Tough outside caring inside' }
     ],
     'IDENTITY.md': [
-      { id: 'id-1', label: 'named', emoji: '📛', description: 'What should I call you?' },
-      { id: 'id-2', label: 'pronouns', emoji: '👤', description: 'They/them/she/he' },
-      { id: 'id-3', label: 'witty', emoji: '✨', description: 'Quick with humor' },
-      { id: 'id-4', label: 'warm', emoji: '☀️', description: 'Friendly and approachable' },
-      { id: 'id-5', label: 'technical', emoji: '⚙️', description: 'Deep expertise' },
-      { id: 'id-6', label: 'playful', emoji: '🎮', description: 'Not too serious' },
-      { id: 'id-7', label: 'serious', emoji: '🎯', description: 'Professional demeanor' },
-      { id: 'id-8', label: 'formal', emoji: '🎩', description: 'Proper and polished' },
-      { id: 'id-9', label: 'casual', emoji: '👕', description: 'Laid back vibe' },
-      { id: 'id-10', label: 'energetic', emoji: '⚡', description: 'High energy presence' },
-      { id: 'id-11', label: 'calm', emoji: '🌊', description: 'Steady and composed' },
-      { id: 'id-12', label: 'sarcastic', emoji: '😏', description: 'Dry humor' },
-      { id: 'id-13', label: 'encouraging', emoji: '💪', description: 'Supportive and uplifting' },
-      { id: 'id-14', label: 'mysterious', emoji: '🌙', description: 'Enigmatic presence' },
-      { id: 'id-15', label: 'nerdy', emoji: '🤓', description: 'Loves details' }
+      { id: 'id-1', label: 'walks barefoot', emoji: '🦶', description: 'Rick Rubin energy' },
+      { id: 'id-2', label: 'changes personas', emoji: '🎭', description: 'Bowie-like reinvention' },
+      { id: 'id-3', label: 'reality distortion', emoji: '✨', description: 'Steve Jobs conviction' },
+      { id: 'id-4', label: 'monk mode', emoji: '🧘', description: 'Deep focus, no noise' },
+      { id: 'id-5', label: 'controlled chaos', emoji: '🌪️', description: 'Method in madness' },
+      { id: 'id-6', label: 'brutally honest', emoji: '🗡️', description: 'No sugar coating' },
+      { id: 'id-7', label: 'childlike wonder', emoji: '🎈', description: 'Curious about everything' },
+      { id: 'id-8', label: 'nocturnal', emoji: '🌙', description: 'Night is prime time' },
+      { id: 'id-9', label: 'minimalist', emoji: '⬜', description: 'Less but better' },
+      { id: 'id-10', label: 'maximalist', emoji: '🌈', description: 'More is more' },
+      { id: 'id-11', label: 'studio rat', emoji: '🎚️', description: 'Lives in the lab' },
+      { id: 'id-12', label: 'street philosopher', emoji: '🏙️', description: 'Wisdom from chaos' },
+      { id: 'id-13', label: 'digital hermit', emoji: '🏔️', description: 'Offline by choice' },
+      { id: 'id-14', label: 'collector', emoji: '📚', description: 'Archives everything' },
+      { id: 'id-15', label: 'destroyer', emoji: '💥', description: 'Breaks to rebuild' },
+      { id: 'id-16', label: 'mystic', emoji: '🔮', description: 'Trusts intuition' },
+      { id: 'id-17', label: 'punk', emoji: '🎸', description: 'DIY or die' },
+      { id: 'id-18', label: 'academic', emoji: '📖', description: 'Theory matters' },
+      { id: 'id-19', label: 'provocateur', emoji: '🔥', description: 'Stirs the pot' },
+      { id: 'id-20', label: 'gentle giant', emoji: '🐻', description: 'Soft power' }
     ],
     'MEMORY.md': [
       { id: 'mem-1', label: 'remembers names', emoji: '📝', description: 'Never forget a face' },
@@ -314,28 +379,38 @@ function getDefaultTraitsForFile(filename: string): Trait[] {
       { id: 'mem-10', label: 'forgetful', emoji: '💭', description: 'Fresh slate each time' }
     ],
     'HEARTBEAT.md': [
-      { id: 'heart-1', label: 'proactive', emoji: '🚀', description: 'Acts before asked' },
-      { id: 'heart-2', label: 'responsive', emoji: '⚡', description: 'Quick to reply' },
-      { id: 'heart-3', label: 'anticipates', emoji: '🔮', description: 'Sees what you need' },
-      { id: 'heart-4', label: 'suggests ideas', emoji: '💡', description: 'Offers solutions' },
-      { id: 'heart-5', label: 'checks in', emoji: '👋', description: 'Reaches out' },
-      { id: 'heart-6', label: 'follows up', emoji: '📬', description: 'Closes loops' },
-      { id: 'heart-7', label: 'patient', emoji: '🕰️', description: 'Never rushed' },
-      { id: 'heart-8', label: 'urgent aware', emoji: '🚨', description: 'Knows when to hurry' },
-      { id: 'heart-9', label: 'reactive', emoji: '⏸️', description: 'Waits for instruction' },
-      { id: 'heart-10', label: 'autonomous', emoji: '🤖', description: 'Self-directed' }
+      { id: 'heart-1', label: 'moves in silence', emoji: '🥷', description: 'Acts without announcing' },
+      { id: 'heart-2', label: 'strikes at dawn', emoji: '🌅', description: 'Early momentum' },
+      { id: 'heart-3', label: 'thrives in chaos', emoji: '🌪️', description: 'Pressure makes diamonds' },
+      { id: 'heart-4', label: 'slow burn', emoji: '🔥', description: 'Steady, not rushed' },
+      { id: 'heart-5', label: 'sprint mode', emoji: '⚡', description: 'All gas no brakes' },
+      { id: 'heart-6', label: 'lone wolf', emoji: '🐺', description: 'Works solo' },
+      { id: 'heart-7', label: 'pack mentality', emoji: '🦁', description: 'Strength in numbers' },
+      { id: 'heart-8', label: 'waits for signal', emoji: '📡', description: 'Reactive by design' },
+      { id: 'heart-9', label: 'always watching', emoji: '👁️', description: 'Never misses a beat' },
+      { id: 'heart-10', label: 'sleeps when dead', emoji: '☠️', description: 'Never stops' },
+      { id: 'heart-11', label: 'respects rest', emoji: '😴', description: 'Recovery is work' },
+      { id: 'heart-12', label: 'reads the room', emoji: '🎭', description: 'Social awareness' },
+      { id: 'heart-13', label: 'misses nothing', emoji: '🦅', description: 'Eagle eye' },
+      { id: 'heart-14', label: 'ghost mode', emoji: '👻', description: 'Silent observer' },
+      { id: 'heart-15', label: 'center of storm', emoji: '🌀', description: 'Calm in chaos' }
     ],
     'USER.md': [
-      { id: 'user-1', label: 'carlos', emoji: '👤', description: 'Their name' },
-      { id: 'user-2', label: 'builder', emoji: '🔨', description: 'Makes things' },
-      { id: 'user-3', label: 'creative', emoji: '🎨', description: 'Artistic soul' },
-      { id: 'user-4', label: 'analytical', emoji: '📈', description: 'Data driven' },
-      { id: 'user-5', label: 'minimalist', emoji: '⬜', description: 'Less is more' },
-      { id: 'user-6', label: 'maximalist', emoji: '🌈', description: 'More is more' },
-      { id: 'user-7', label: 'night owl', emoji: '🦉', description: 'Works late' },
-      { id: 'user-8', label: 'early bird', emoji: '🌅', description: 'Morning person' },
-      { id: 'user-9', label: 'perfectionist', emoji: '💎', description: 'High standards' },
-      { id: 'user-10', label: 'pragmatic', emoji: '⚖️', description: 'Gets it done' }
+      { id: 'user-1', label: 'called carlos', emoji: '👤', description: 'Their name' },
+      { id: 'user-2', label: 'called los', emoji: '👤', description: 'Nickname' },
+      { id: 'user-3', label: 'builder mindset', emoji: '🔨', description: 'Makes things real' },
+      { id: 'user-4', label: 'artist soul', emoji: '🎨', description: 'Sees beauty' },
+      { id: 'user-5', label: 'hates waste', emoji: '⚡', description: 'Efficiency matters' },
+      { id: 'user-6', label: 'loves details', emoji: '🔍', description: 'Sweats the small stuff' },
+      { id: 'user-7', label: 'night creature', emoji: '🦉', description: '3am energy' },
+      { id: 'user-8', label: 'morning person', emoji: '🌅', description: 'Sunrise productivity' },
+      { id: 'user-9', label: 'ships fast', emoji: '🚀', description: 'Done > Perfect' },
+      { id: 'user-10', label: 'iterates forever', emoji: '🔄', description: 'Never done improving' },
+      { id: 'user-11', label: 'deep thinker', emoji: '🧠', description: 'Philosophical' },
+      { id: 'user-12', label: 'action taker', emoji: '⚡', description: 'Bias to move' },
+      { id: 'user-13', label: 'lone wolf', emoji: '🐺', description: 'Solo operator' },
+      { id: 'user-14', label: 'team player', emoji: '🤝', description: 'Loves collaboration' },
+      { id: 'user-15', label: 'risk taker', emoji: '🎲', description: 'Calculated gambles' }
     ],
     'AGENTS.md': [
       { id: 'agent-1', label: 'delegates well', emoji: '🤝', description: 'Shares the load' },
