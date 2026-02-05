@@ -21,6 +21,7 @@ export default function KhaledPage() {
   const [lobsters, setLobsters] = useState<FallingLobster[]>([])
   const [bubbles, setBubbles] = useState<Bubble[]>([])
   const [audioReady, setAudioReady] = useState(false)
+  const [soundEnabled, setSoundEnabled] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const lobsterIdRef = useRef(0)
   const bubbleIdRef = useRef(0)
@@ -81,7 +82,8 @@ export default function KhaledPage() {
     const trigger = () => {
       playSound()
       spawnBubble()
-      spawnLobster()
+      // Delay lobster spawn until after the phrase is said
+      setTimeout(spawnLobster, 1500)
     }
 
     // Initial trigger after a short delay
@@ -127,6 +129,7 @@ export default function KhaledPage() {
       audioRef.current.play().then(() => {
         audioRef.current?.pause()
         audioRef.current!.currentTime = 0
+        setSoundEnabled(true)
       }).catch(() => {})
     }
   }, [])
@@ -169,16 +172,18 @@ export default function KhaledPage() {
             left: `${lobster.x}%`,
             top: `${lobster.y}%`,
             transform: `translate(-50%, -50%) rotate(${lobster.rotation}deg)`,
-            width: '100px',
+            width: '50px',
             height: 'auto',
           }}
         />
       ))}
 
       {/* Click prompt */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 text-black text-sm opacity-50">
-        Click anywhere to enable sound
-      </div>
+      {!soundEnabled && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 text-black text-sm opacity-50">
+          Click anywhere to enable sound
+        </div>
+      )}
 
       <style jsx>{`
         @keyframes bubble {
