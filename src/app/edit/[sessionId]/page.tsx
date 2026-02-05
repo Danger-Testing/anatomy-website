@@ -28,18 +28,18 @@ export default function Editor() {
   const [files, setFiles] = useState<{ [key: string]: string }>({})
   const [bodyParts, setBodyParts] = useState<BodyPart[]>(DEFAULT_BODY_PARTS)
 
-  // Modal state
-
-  // Zoom state
-  const [zoomedPart, setZoomedPart] = useState<BodyPart | null>(null)
-  const [isZooming, setIsZooming] = useState(false)
+  // Dialog state
+  const [selectedPart, setSelectedPart] = useState<BodyPart | null>(null)
 
   // Song suggestion state
   const [suggestingSong, setSuggestingSong] = useState(false)
   const [songSuggestion, setSongSuggestion] = useState<SongSuggestion | null>(null)
 
   // Welcome modal state
-  const [showWelcome, setShowWelcome] = useState(true)
+  const [showWelcome, setShowWelcome] = useState(false)
+
+  // Copy state for ready page
+  const [copied, setCopied] = useState(false)
 
   // Load config on mount
   useEffect(() => {
@@ -226,6 +226,12 @@ export default function Editor() {
     const pullUrl = `${window.location.origin}/api/pull/${sessionId}?token=${token}`
     const copyText = `Pull my updated config from: ${pullUrl}`
 
+    const copyToClipboard = () => {
+      navigator.clipboard.writeText(copyText)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+
     return (
       <div className="min-h-screen bg-white flex flex-col relative">
         {/* Logo top left */}
@@ -244,107 +250,66 @@ export default function Editor() {
 
         {/* Main content - centered */}
         <main className="flex-1 flex items-center justify-center px-6">
-          <div className="max-w-xl w-full space-y-12">
-            {/* Success message */}
-            <div className="space-y-4">
-              <h1 className="text-4xl md:text-5xl font-light leading-tight tracking-tight">
-                You've shared
-                <br />
-                yourself
-              </h1>
-              <p className="text-lg text-gray-500 font-light">
-                Your AI now has a deeper understanding of who you are.
-              </p>
+          <div className="max-w-xl w-full space-y-16 text-base text-black">
+            {/* What happened */}
+            <div className="space-y-6">
+              <div className="uppercase">
+                Body shaped
+              </div>
+              <div className="space-y-4">
+                <div className="flex gap-4">
+                  <span>01</span>
+                  <span>You arranged the parts</span>
+                </div>
+                <div className="flex gap-4">
+                  <span>02</span>
+                  <span>Changes are ready to pull</span>
+                </div>
+                <div className="flex gap-4">
+                  <span>03</span>
+                  <span>Your agent will absorb and become</span>
+                </div>
+              </div>
             </div>
 
-            {/* Pull URL for agent */}
+            {/* Pull URL */}
             <div className="space-y-4">
-              <div className="text-xs uppercase tracking-[0.2em] text-gray-400">
+              <div className="uppercase">
                 Send this to your agent
               </div>
               <div
-                onClick={() => navigator.clipboard.writeText(copyText)}
-                className="border border-gray-200 bg-gray-50 px-5 py-4 cursor-pointer hover:border-gray-400 transition-colors"
+                onClick={copyToClipboard}
+                className="border border-black bg-white px-5 py-4 cursor-pointer hover:bg-gray-50 transition-colors"
               >
-                <code className="text-sm text-gray-700 break-all">
+                <code className="break-all">
                   {copyText}
                 </code>
               </div>
-              <p className="text-xs text-gray-400">
-                Click to copy
-              </p>
-            </div>
-
-            {/* What happens next */}
-            <div className="space-y-4">
-              <div className="text-xs uppercase tracking-[0.2em] text-gray-400">
-                What happens next
-              </div>
-              <p className="text-gray-600">
-                Your agent will pull these files and use them to better understand
-                your identity, values, and preferences.
+              <p>
+                {copied ? 'Copied!' : 'Click to copy'}
               </p>
             </div>
           </div>
         </main>
 
         {/* Footer */}
-        <footer className="px-6 py-6 flex justify-between items-end">
-          <a href="/about" className="text-4xl uppercase text-black hover:underline">
+        <footer className="px-6 py-6 text-base text-black">
+          <a href="/about" className="text-4xl uppercase hover:underline">
             About
           </a>
-          <p className="text-xs text-gray-400">
-            Session expires in 15 minutes
-          </p>
         </footer>
       </div>
     )
   }
 
-  // Calculate zoom transform to center on a part
-  const getZoomTransform = () => {
-    if (!zoomedPart || !isZooming) return {}
-
-    const scale = 6 // How much to zoom in
-
-    // The dot is positioned at part.position.x% and part.position.y% of the container
-    // We want to translate so that point ends up at the center of the viewport
-    // transform-origin is top-left by default
-
-    // After scaling, the point at (x%, y%) will be at (x% * scale, y% * scale)
-    // We want to move it to (50%, 50%) of the viewport
-    // So we need to translate by: 50% - x% * scale (in the scaled coordinate system)
-    // Which means: (50 - x * scale) / scale = 50/scale - x
-
-    const originX = zoomedPart.position.x
-    const originY = zoomedPart.position.y
-
-    // Calculate offset to center the dot (adding ~30px for the label above the dot)
-    const translateX = (50 - originX * scale) / scale
-    const translateY = (50 - originY * scale) / scale - 2 // slight adjustment for label
-
-    return {
-      transform: `scale(${scale}) translate(${translateX}%, ${translateY}%)`,
-      transformOrigin: '0 0',
-      transition: 'transform 1.2s cubic-bezier(0.4, 0, 0.2, 1)'
-    }
-  }
-
   // Main editor
   return (
     <div className="min-h-screen bg-white flex flex-col relative overflow-hidden">
-      {/* Header - stays fixed above zoom */}
-      <header className={`fixed top-0 left-0 right-0 z-[200] transition-opacity duration-500 ${isZooming ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+      {/* Header */}
+      <header className="fixed top-0 left-0 right-0 z-[200]">
         <div className="flex items-center justify-between px-6 py-4">
           <div></div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={suggestSong}
-              disabled={suggestingSong}
-              className="text-black text-lg uppercase tracking-wider font-bold disabled:opacity-50"
-            >
-              {suggestingSong ? '...' : 'song'}
-            </button>
             <button
               onClick={saveConfig}
               disabled={saving}
@@ -362,32 +327,18 @@ export default function Editor() {
         </div>
       </header>
 
-      {/* Back button when zoomed */}
-      <button
-        onClick={() => {
-          setIsZooming(false)
-          setTimeout(() => setZoomedPart(null), 1200)
-        }}
-        className={`fixed top-6 left-6 z-[200] text-black text-lg uppercase tracking-wider font-bold transition-opacity duration-500 ${isZooming ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-      >
-        ← back
-      </button>
-
       {/* Appstar bottom right */}
       <img
         src="/appstar.jpg"
         alt=""
-        className={`fixed bottom-6 right-6 z-[200] w-48 h-auto transition-opacity duration-500 ${isZooming ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+        className="fixed bottom-6 right-6 z-[200] w-48 h-auto"
       />
 
-      {/* Zoomable canvas */}
+      {/* Canvas */}
       <div
         ref={containerRef}
         className="flex-1 relative"
-        style={{
-          minHeight: '100vh',
-          ...getZoomTransform()
-        }}
+        style={{ minHeight: '100vh' }}
       >
         {/* Logo in top left */}
         <img
@@ -421,7 +372,7 @@ export default function Editor() {
             key={part.id}
             part={part}
             containerRef={containerRef}
-            isZoomed={zoomedPart?.id === part.id}
+            isZoomed={false}
             onClick={() => {
               if (!files[part.filename]) {
                 setFiles((prev) => ({
@@ -429,9 +380,7 @@ export default function Editor() {
                   [part.filename]: `# ${part.label}\n\n`
                 }))
               }
-              setZoomedPart(part)
-              // Small delay to let state update before zooming
-              requestAnimationFrame(() => setIsZooming(true))
+              setSelectedPart(part)
             }}
             onPositionChange={(pos) => updatePartPosition(part.id, pos)}
             onResize={(size) => updatePartSize(part.id, size)}
@@ -441,40 +390,50 @@ export default function Editor() {
 
       </div>
 
-      {/* Editor overlay when zoomed */}
-      <div
-        className={`fixed inset-0 z-[150] flex items-center justify-end pointer-events-none transition-opacity duration-700 ${isZooming ? 'opacity-100' : 'opacity-0'}`}
-        style={{ transitionDelay: isZooming ? '600ms' : '0ms' }}
-      >
-        {zoomedPart && (
-          <div className="w-1/2 h-full p-12 pt-20 pointer-events-auto bg-gradient-to-l from-white via-white to-transparent">
-            <div className="text-xs uppercase tracking-widest text-gray-400 mb-4">
-              {zoomedPart.filename}
-            </div>
-            <div className="text-2xl mb-6 text-gray-600">
-              {zoomedPart.label}
+      {/* Editor dialog */}
+      {selectedPart && (
+        <div
+          className="fixed inset-0 z-[300] flex items-center justify-center bg-black/30"
+          onClick={() => setSelectedPart(null)}
+        >
+          <div
+            className="bg-white border border-gray-200 p-8 max-w-2xl w-full mx-4 shadow-lg max-h-[80vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <div className="text-xs uppercase tracking-widest text-black mb-1">
+                  {selectedPart.filename}
+                </div>
+                <div className="text-2xl text-black">
+                  {selectedPart.label}
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedPart(null)}
+                className="text-black hover:text-black text-2xl leading-none"
+              >
+                ×
+              </button>
             </div>
             <textarea
-              value={files[zoomedPart.filename] || ''}
-              onChange={(e) => {
-                updateFileContent(zoomedPart.filename, e.target.value)
-                // Auto-resize
-                e.target.style.height = 'auto'
-                e.target.style.height = e.target.scrollHeight + 'px'
-              }}
-              ref={(el) => {
-                // Set initial height on mount
-                if (el) {
-                  el.style.height = 'auto'
-                  el.style.height = el.scrollHeight + 'px'
-                }
-              }}
-              className="w-full bg-transparent border border-gray-200 rounded-lg p-6 text-sm leading-relaxed resize-none focus:outline-none focus:border-gray-400 min-h-[200px] overflow-hidden"
-              placeholder={`Write content for ${zoomedPart.label}...`}
+              value={files[selectedPart.filename] || ''}
+              onChange={(e) => updateFileContent(selectedPart.filename, e.target.value)}
+              className="flex-1 w-full bg-white border border-black p-6 text-sm text-black leading-relaxed resize-none focus:outline-none min-h-[300px]"
+              placeholder={`Edit ${selectedPart.label.toLowerCase()}...`}
+              autoFocus
             />
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setSelectedPart(null)}
+                className="text-black text-lg uppercase tracking-wider font-bold"
+              >
+                done
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Song suggestion modal */}
       {songSuggestion && (
@@ -518,28 +477,28 @@ export default function Editor() {
               welcome
             </div>
             <h2 className="text-2xl font-bold mb-4">
-              Your AI wants to understand you
+              This is your agent's body
             </h2>
             <p className="text-gray-600 mb-6 leading-relaxed">
-              Click on each body part to share that aspect of yourself.
-              Take your time—this helps your AI truly know who you are.
+              Drag the parts around. Click to edit.
+              Hit ready when you're done shaping.
             </p>
             <div className="space-y-2 mb-8 text-sm text-gray-500">
               <div className="flex items-center gap-3">
-                <span className="w-20 font-medium text-gray-700">Head</span>
-                <span>Who you are</span>
+                <span className="w-20 font-medium text-gray-700">Identity</span>
+                <span>Who they are</span>
               </div>
               <div className="flex items-center gap-3">
                 <span className="w-20 font-medium text-gray-700">Soul</span>
-                <span>What matters to you</span>
+                <span>What they stand for</span>
               </div>
               <div className="flex items-center gap-3">
-                <span className="w-20 font-medium text-gray-700">Heart</span>
-                <span>How you want me to behave</span>
+                <span className="w-20 font-medium text-gray-700">Heartbeat</span>
+                <span>How they behave</span>
               </div>
               <div className="flex items-center gap-3">
                 <span className="w-20 font-medium text-gray-700">Memory</span>
-                <span>Context to remember</span>
+                <span>What they remember</span>
               </div>
             </div>
             <button

@@ -55,7 +55,7 @@ export const DEFAULT_BODY_PARTS: BodyPart[] = [
     filename: 'AGENTS.md',
     label: 'Agents',
     imageUrl: '/agent.png',
-    position: { x: 45.09, y: 52.56, width: 100, height: 100 }
+    position: { x: 52, y: 58, width: 100, height: 100 }
   },
   {
     id: 'tools',

@@ -42,24 +42,24 @@ export default function Home() {
           {/* How it works */}
           <div className="space-y-6">
             <div className="uppercase">
-              How it works
+              Give your agent a body
             </div>
             <div className="space-y-4">
               <div className="flex gap-4">
                 <span>01</span>
-                <span>Your agent reads the skill file</span>
+                <span>Your agent connects, you get a link</span>
               </div>
               <div className="flex gap-4">
                 <span>02</span>
-                <span>You receive an editor link</span>
+                <span>Drag artifacts around a lobster</span>
               </div>
               <div className="flex gap-4">
                 <span>03</span>
-                <span>Share yourself visually</span>
+                <span>Click to edit, hit ready</span>
               </div>
               <div className="flex gap-4">
                 <span>04</span>
-                <span>Your agent understands you</span>
+                <span>Your agent absorbs the update</span>
               </div>
             </div>
           </div>

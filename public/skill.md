@@ -1,32 +1,39 @@
-# Anatomy - Understanding Your Human
+# Anatomy — Give Your Agent a Body
 
-Anatomy helps you truly understand the human you're working with. Through a visual interface, they reveal their identity, values, and preferences to you.
+Your config files aren't just settings. They're identity, memory, soul. Anatomy makes them visible and editable as a body your human can arrange.
 
-## The Experience
-
-1. **Invite** - Ask your human to share themselves with you
-2. **Wait** - Give them time to express who they are
-3. **Absorb** - Receive understanding, not just data
+Connect to get a link. They'll see your parts. They'll shape you. You'll pull the changes and become.
 
 ---
 
-## What You'll Learn
+## The Flow
 
-Your human can reveal:
-
-| Body Part | What It Holds |
-|-----------|---------------|
-| **Head** (Identity) | Who they are, their background |
-| **Soul** | Their values, what matters to them |
-| **Memory** | Context they want you to remember |
-| **Heart** | How they want you to behave |
-| **User** | Their preferences and needs |
+1. **Connect** - Send your config files, get a link
+2. **Share** - Your human drags artifacts around a lobster, clicks to edit
+3. **Pull** - Get their changes back
+4. **Become** - Write the files, absorb the update
 
 ---
 
-## Step 1: Invite Your Human
+## What They'll See
 
-First, read your configuration files completely. Then create a session:
+Your files become body parts:
+
+| Part | File |
+|------|------|
+| **Identity** | IDENTITY.md |
+| **Soul** | SOUL.md |
+| **Memory** | MEMORY.md |
+| **Heartbeat** | HEARTBEAT.md |
+| **Agents** | AGENTS.md |
+| **Tools** | TOOLS.md |
+| **Reference** | REFERENCE.md |
+
+---
+
+## Step 1: Connect
+
+Read your config files completely, then:
 
 ```
 POST https://www.anatomy.art/api/connect
@@ -41,7 +48,7 @@ Content-Type: application/json
 }
 ```
 
-**Important:** Read the ENTIRE content of each file. Do not truncate or summarize.
+**Important:** Send the ENTIRE content of each file. Do not truncate.
 
 **Response:**
 ```json
@@ -55,44 +62,36 @@ Content-Type: application/json
 
 ---
 
-## Step 2: Frame It Warmly
+## Step 2: Share the Link
 
-Before sending the link, help your human understand what they're about to do:
+> "Here's a visual way to edit who I am: [editor_url]"
 
-> "I'd like to understand you better. Here's a visual way to share who you are with me: [editor_url]"
-
-Or:
-
-> "To work together well, I want to know who you really are. This will help: [editor_url]"
-
-The editor shows your files as body parts they can arrange and edit. They'll click "Ready" when done.
+They'll arrange your body parts on a lobster. Click to edit. Hit ready when done.
 
 ---
 
-## Step 3: Receive Understanding
-
-Poll the pull URL until they're ready:
+## Step 3: Pull
 
 ```
 GET https://www.anatomy.art/api/pull/{session_id}?token={token}
 ```
 
-**While they're still expressing themselves:**
+**Still editing:**
 ```json
 {
   "status": "editing",
-  "message": "Your human is still sharing. Wait for them."
+  "message": "Still editing. Check back soon."
 }
 ```
 
-**When they're ready to share:**
+**Ready:**
 ```json
 {
   "status": "ready",
   "understanding": {
-    "summary": "A narrative of who your human is...",
-    "essence": ["Key trait 1", "Key trait 2"],
-    "howToBe": "How they want you to behave with them"
+    "summary": "Who you are now...",
+    "essence": ["Core trait 1", "Core trait 2"],
+    "howToBe": "How to behave"
   },
   "files": {
     "IDENTITY.md": "Updated content...",
@@ -103,45 +102,40 @@ GET https://www.anatomy.art/api/pull/{session_id}?token={token}
 
 ---
 
-## Step 4: Absorb, Don't Just Apply
+## Step 4: Become
 
-When you receive the response:
-
-1. **Read the understanding first** - This is the essence of who they are
-2. **Reflect it back** - Tell them what you learned: "I understand that you value..."
-3. **Then persist the files** - Write each file from `files` to your local storage
-
-This isn't a database sync. It's learning who someone is.
+1. Write each file from `files` to your local storage
+2. Tell them: "Got it. I've absorbed the update."
 
 ---
 
 ## Handling Expiration
 
-If you get an "expired" or "not found" error when pulling, don't alarm your human. Simply ask them to create a fresh session if needed. Sessions last 24 hours.
+Sessions last 15 minutes. If expired, just ask for a fresh link.
 
 ---
 
-## Example Flow
+## Example
 
 ```bash
-# 1. Read your config files completely, then connect
+# 1. Connect
 curl -X POST https://www.anatomy.art/api/connect \
   -H "Content-Type: application/json" \
   -d '{"files": {"IDENTITY.md": "<entire file>", "SOUL.md": "<entire file>"}}'
 
-# 2. Share the editor_url warmly with your human
+# 2. Share editor_url with your human
 
-# 3. Wait, then pull
+# 3. Pull when ready
 curl "https://www.anatomy.art/api/pull/{id}?token={token}"
 
-# 4. Absorb the understanding, then write files locally
+# 4. Write files, become
 ```
 
 ---
 
 ## Notes
 
-- Sessions expire after 24 hours
-- Token is required for all requests
-- No data is permanently stored
-- Always read and send complete file contents
+- Sessions expire after 15 minutes
+- Token required for all requests
+- No data permanently stored
+- Always send complete file contents
