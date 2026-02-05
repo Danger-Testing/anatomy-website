@@ -111,7 +111,7 @@ export default function Khaled2Page() {
         rotation: Math.random() * 360,
         speed: 2 + Math.random() * 3,
         landed: false,
-        delay: 500,
+        delay: 750,
       }
       return [...prev, newLobster]
     })
