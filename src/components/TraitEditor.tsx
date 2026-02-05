@@ -32,16 +32,20 @@ export function TraitEditor({
   const [showPlaintext, setShowPlaintext] = useState(false)
   const [selectedCharacter, setSelectedCharacter] = useState<string | null>(null)
 
-  // Character list
-  const characters = [
-    { id: 'bernie', label: 'Bernie', emoji: '💯' },
-    { id: 'rubin', label: 'Rubin', emoji: '🦶' },
-    { id: 'bowie', label: 'Bowie', emoji: '⚡' },
-    { id: 'jobs', label: 'Jobs', emoji: '🍎' },
-    { id: 'summer', label: 'Summer', emoji: '🌸' },
-    { id: 'chanel', label: 'Chanel', emoji: '👗' },
-    { id: 'machiavelli', label: 'Mach', emoji: '♟️' }
-  ]
+  // Character list - randomized on mount
+  const [characters] = useState(() => {
+    const chars = [
+      { id: 'bernie', label: 'Bernie', emoji: '💯' },
+      { id: 'rubin', label: 'Rubin', emoji: '🦶' },
+      { id: 'bowie', label: 'Bowie', emoji: '⚡' },
+      { id: 'jobs', label: 'Jobs', emoji: '🍎' },
+      { id: 'summer', label: 'Summer', emoji: '🌸' },
+      { id: 'chanel', label: 'Chanel', emoji: '👗' },
+      { id: 'machiavelli', label: 'Mach', emoji: '♟️' }
+    ]
+    // Shuffle array
+    return chars.sort(() => Math.random() - 0.5)
+  })
 
   // Check if any traits are character-specific for this file
   const hasCharacterTraits = availableTraits.some(trait =>
@@ -199,17 +203,18 @@ export function TraitEditor({
             {characters.map(char => (
               <button
                 key={char.id}
-                onClick={() => hasCharacterTraits && setSelectedCharacter(
-                  selectedCharacter === char.id ? null : char.id
-                )}
-                disabled={!hasCharacterTraits}
-                className={`px-4 py-3 text-sm uppercase tracking-wider font-bold border-2 transition-all ${
+                onClick={() => {
+                  if (hasCharacterTraits) {
+                    setSelectedCharacter(selectedCharacter === char.id ? null : char.id)
+                  }
+                }}
+                className={`px-4 py-3 text-sm uppercase tracking-wider font-bold border-2 transition-all cursor-pointer ${
                   !hasCharacterTraits
-                    ? 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed'
+                    ? 'bg-gray-200 text-gray-400 border-gray-300'
                     : selectedCharacter === char.id
                     ? 'bg-black text-white border-black'
                     : selectedCharacter
-                    ? 'bg-gray-200 text-gray-400 border-gray-300'
+                    ? 'bg-gray-200 text-gray-400 border-gray-300 hover:bg-gray-300'
                     : 'bg-white text-black border-black hover:bg-gray-100'
                 }`}
               >
@@ -589,10 +594,12 @@ function getDefaultTraitsForFile(filename: string): Trait[] {
       { id: 'id-42', label: 'machiavelli ruthless', emoji: '⚔️', description: 'Ends justify means' }
     ],
     'MEMORY.md': [
-      // Bernie Mac memories - cinematic moments
-      { id: 'mem-bernie-1', label: 'bernie mac walking kings stage', emoji: '🎤', description: 'Stepping into spotlight 2000' },
-      { id: 'mem-bernie-2', label: 'bernie mac crowd going wild', emoji: '🔥', description: 'They finally getting it' },
-      { id: 'mem-bernie-3', label: 'bernie mac grinding empty clubs', emoji: '🎭', description: 'Years before anyone listened' },
+      // Bernie Mac memories - from TV show episodes
+      { id: 'mem-bernie-1', label: 'bernie mac taking in the kids', emoji: '🏠', description: 'Sister brought them over never came back' },
+      { id: 'mem-bernie-2', label: 'bernie mac bust em speech', emoji: '👊', description: 'I will bust your head til the white meat shows' },
+      { id: 'mem-bernie-3', label: 'bernie mac talking to america', emoji: '📺', description: 'Breaking fourth wall telling truth' },
+      { id: 'mem-bernie-4', label: 'bernie mac wanda keeping him sane', emoji: '💑', description: 'Wife calming him down again' },
+      { id: 'mem-bernie-5', label: 'bernie mac milk and cookies', emoji: '🥛', description: 'Trying to be gentle failing' },
 
       // Rick Rubin memories - cinematic moments
       { id: 'mem-rubin-1', label: 'rubin sitting on dorm floor', emoji: '🏠', description: 'Making label on floor 1984' },
