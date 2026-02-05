@@ -197,9 +197,9 @@ export function TraitEditor({
         )}
 
         {/* Footer */}
-        <div className="p-6 border-t-4 border-black flex justify-between items-center">
+        <div className="p-4 border-t-4 border-black flex justify-between items-center gap-4">
           {/* Character filters on left */}
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center flex-wrap">
             {characters.map(char => (
               <button
                 key={char.id}
@@ -208,17 +208,22 @@ export function TraitEditor({
                     setSelectedCharacter(selectedCharacter === char.id ? null : char.id)
                   }
                 }}
-                className={`px-4 py-3 text-sm uppercase tracking-wider font-bold border-2 transition-all cursor-pointer ${
+                className={`w-12 h-12 rounded-full overflow-hidden border-2 transition-all cursor-pointer flex-shrink-0 ${
                   !hasCharacterTraits
-                    ? 'bg-gray-200 text-gray-400 border-gray-300'
+                    ? 'border-gray-300 grayscale opacity-50'
                     : selectedCharacter === char.id
-                    ? 'bg-black text-white border-black'
+                    ? 'border-black ring-2 ring-black'
                     : selectedCharacter
-                    ? 'bg-gray-200 text-gray-400 border-gray-300 hover:bg-gray-300'
-                    : 'bg-white text-black border-black hover:bg-gray-100'
+                    ? 'border-gray-300 grayscale opacity-50 hover:opacity-70'
+                    : 'border-black hover:ring-2 hover:ring-gray-400'
                 }`}
+                title={char.label}
               >
-                {char.emoji} {char.label}
+                <img
+                  src={`/${char.id}.png`}
+                  alt={char.label}
+                  className="w-full h-full object-cover"
+                />
               </button>
             ))}
           </div>
@@ -226,7 +231,7 @@ export function TraitEditor({
           {/* Actions on right */}
           <button
             onClick={handleSave}
-            className="text-black text-xl uppercase tracking-wider font-bold hover:bg-black hover:text-white px-6 py-2 border-2 border-black transition-colors"
+            className="text-black text-sm uppercase tracking-wider font-bold hover:bg-black hover:text-white px-4 py-2 border-2 border-black transition-colors whitespace-nowrap flex-shrink-0"
           >
             save changes
           </button>
