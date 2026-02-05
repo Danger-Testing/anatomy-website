@@ -121,7 +121,7 @@ export default function Khaled2Page() {
     const trigger = () => {
       playSound()
       spawnBubble()
-      setTimeout(spawnNextLobster, 250)
+      setTimeout(spawnNextLobster, 500)
     }
 
     const initialTimeout = setTimeout(trigger, 500)
