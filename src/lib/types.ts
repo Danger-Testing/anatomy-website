@@ -66,8 +66,8 @@ export const DEFAULT_BODY_PARTS: BodyPart[] = [
   },
   {
     id: 'reference',
-    filename: 'REFERENCE.md',
-    label: 'Reference',
+    filename: 'REFERENCES.md',
+    label: 'References',
     imageUrl: '/references.png',
     position: { x: 33.56, y: 70.55, width: 100, height: 100 }
   },
