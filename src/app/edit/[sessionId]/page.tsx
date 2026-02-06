@@ -1,175 +1,188 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useRef } from 'react'
-import { useParams, useSearchParams } from 'next/navigation'
-import { Artifact } from '@/components/Artifact'
-import { TraitEditor } from '@/components/TraitEditor'
-import { BodyPart, DEFAULT_BODY_PARTS, AgentConfig } from '@/lib/types'
+import { useState, useEffect, useRef } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import { Artifact } from "@/components/Artifact";
+import { TraitEditor } from "@/components/TraitEditor";
+import { BodyPart, DEFAULT_BODY_PARTS, AgentConfig } from "@/lib/types";
 
-type SessionStatus = 'loading' | 'editing' | 'ready' | 'error'
+type SessionStatus = "loading" | "editing" | "ready" | "error";
 
 interface RecommendationItem {
-  category: 'musician' | 'art' | 'poem' | 'book'
-  title: string
-  creator?: string
-  description: string
-  searchQuery?: string
+  category: "musician" | "art" | "poem" | "book";
+  title: string;
+  creator?: string;
+  description: string;
+  searchQuery?: string;
 }
 
 export default function Editor() {
-  const params = useParams()
-  const searchParams = useSearchParams()
-  const sessionId = params.sessionId as string
-  const token = searchParams.get('token')
-  const containerRef = useRef<HTMLDivElement>(null)
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const sessionId = params.sessionId as string;
+  const token = searchParams.get("token");
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const [status, setStatus] = useState<SessionStatus>('loading')
-  const [error, setError] = useState('')
-  const [saving, setSaving] = useState(false)
+  const [status, setStatus] = useState<SessionStatus>("loading");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   // Config state
-  const [files, setFiles] = useState<{ [key: string]: string }>({})
-  const [bodyParts, setBodyParts] = useState<BodyPart[]>(DEFAULT_BODY_PARTS)
+  const [files, setFiles] = useState<{ [key: string]: string }>({});
+  const [bodyParts, setBodyParts] = useState<BodyPart[]>(DEFAULT_BODY_PARTS);
 
   // Dialog state
-  const [selectedPart, setSelectedPart] = useState<BodyPart | null>(null)
+  const [selectedPart, setSelectedPart] = useState<BodyPart | null>(null);
 
   // Copy state for ready page
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState(false);
 
   // Curate state
-  const [curating, setCurating] = useState(false)
-  const [recommendations, setRecommendations] = useState<RecommendationItem[] | null>(null)
-  const [curateError, setCurateError] = useState('')
+  const [curating, setCurating] = useState(false);
+  const [recommendations, setRecommendations] = useState<
+    RecommendationItem[] | null
+  >(null);
+  const [curateError, setCurateError] = useState("");
 
   // Load config on mount
   useEffect(() => {
     if (!token) {
-      setError('Missing token')
-      setStatus('error')
-      return
+      setError("Missing token");
+      setStatus("error");
+      return;
     }
-    fetchConfig()
-  }, [sessionId, token])
+    fetchConfig();
+  }, [sessionId, token]);
 
   async function fetchConfig() {
-    setStatus('loading')
+    setStatus("loading");
     try {
-      const res = await fetch(`/api/session/${sessionId}?token=${token}`)
-      const data = await res.json()
+      const res = await fetch(`/api/session/${sessionId}?token=${token}`);
+      const data = await res.json();
 
       if (!data.success) {
-        setError(data.error || 'Failed to load session')
-        setStatus('error')
-        return
+        setError(data.error || "Failed to load session");
+        setStatus("error");
+        return;
       }
 
-      setFiles(data.config.files || {})
+      setFiles(data.config.files || {});
       if (data.config.layout) {
-        setBodyParts(Object.values(data.config.layout))
+        setBodyParts(Object.values(data.config.layout));
       }
-      setStatus('editing')
-      setError('')
+      setStatus("editing");
+      setError("");
     } catch {
-      setError('Failed to connect')
-      setStatus('error')
+      setError("Failed to connect");
+      setStatus("error");
     }
   }
 
   async function saveConfig() {
-    setSaving(true)
+    setSaving(true);
     const config: AgentConfig = {
       files,
-      layout: bodyParts.reduce((acc, part) => {
-        acc[part.id] = part
-        return acc
-      }, {} as { [key: string]: BodyPart })
-    }
+      layout: bodyParts.reduce(
+        (acc, part) => {
+          acc[part.id] = part;
+          return acc;
+        },
+        {} as { [key: string]: BodyPart },
+      ),
+    };
 
     try {
       const res = await fetch(`/api/session/${sessionId}?token=${token}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config })
-      })
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ config }),
+      });
 
       if (!res.ok) {
-        setError('Failed to save')
+        setError("Failed to save");
       }
     } catch {
-      setError('Failed to save')
+      setError("Failed to save");
     }
-    setSaving(false)
+    setSaving(false);
   }
 
   async function markReady() {
     // Save first, then mark ready
-    await saveConfig()
+    await saveConfig();
 
     try {
       const res = await fetch(`/api/session/${sessionId}?token=${token}`, {
-        method: 'POST'
-      })
+        method: "POST",
+      });
 
       if (res.ok) {
-        setStatus('ready')
+        setStatus("ready");
       } else {
-        setError('Failed to mark ready')
+        setError("Failed to mark ready");
       }
     } catch {
-      setError('Failed to mark ready')
+      setError("Failed to mark ready");
     }
   }
 
   function updateFileContent(filename: string, content: string) {
-    setFiles((prev) => ({ ...prev, [filename]: content }))
+    setFiles((prev) => ({ ...prev, [filename]: content }));
   }
 
-  function updatePartPosition(partId: string, position: { x: number; y: number }) {
+  function updatePartPosition(
+    partId: string,
+    position: { x: number; y: number },
+  ) {
     setBodyParts((prev) =>
       prev.map((p) =>
-        p.id === partId ? { ...p, position: { ...p.position, ...position } } : p
-      )
-    )
+        p.id === partId
+          ? { ...p, position: { ...p.position, ...position } }
+          : p,
+      ),
+    );
   }
 
-  function updatePartSize(partId: string, size: { width: number; height: number }) {
+  function updatePartSize(
+    partId: string,
+    size: { width: number; height: number },
+  ) {
     setBodyParts((prev) =>
       prev.map((p) =>
-        p.id === partId ? { ...p, position: { ...p.position, ...size } } : p
-      )
-    )
+        p.id === partId ? { ...p, position: { ...p.position, ...size } } : p,
+      ),
+    );
   }
 
   async function curate() {
-    setCurating(true)
-    setCurateError('')
-    setRecommendations(null)
+    setCurating(true);
+    setCurateError("");
+    setRecommendations(null);
 
     try {
-      const res = await fetch('/api/curate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ files })
-      })
+      const res = await fetch("/api/curate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ files }),
+      });
 
-      const data = await res.json()
+      const data = await res.json();
 
       if (!data.success) {
-        setCurateError(data.error || 'Failed to curate')
-        return
+        setCurateError(data.error || "Failed to curate");
+        return;
       }
 
-      setRecommendations(data.recommendations)
+      setRecommendations(data.recommendations);
     } catch {
-      setCurateError('Failed to connect')
+      setCurateError("Failed to connect");
     } finally {
-      setCurating(false)
+      setCurating(false);
     }
   }
 
   // Loading state
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="min-h-screen bg-white flex flex-col relative">
         <img
@@ -186,11 +199,11 @@ export default function Editor() {
           <p className="text-gray-400 text-sm">Loading...</p>
         </div>
       </div>
-    )
+    );
   }
 
   // Error state
-  if (status === 'error') {
+  if (status === "error") {
     return (
       <div className="min-h-screen bg-white flex flex-col relative">
         <img
@@ -221,28 +234,29 @@ export default function Editor() {
           </div>
         </main>
       </div>
-    )
+    );
   }
 
   // Ready state - human is done
-  if (status === 'ready') {
-    const pullUrl = `${window.location.origin}/api/pull/${sessionId}?token=${token}`
-    const copyText = `Pull my updated config from: ${pullUrl}`
+  if (status === "ready") {
+    const pullUrl = `${window.location.origin}/api/pull/${sessionId}?token=${token}`;
 
     const copyToClipboard = () => {
-      navigator.clipboard.writeText(copyText)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
+      navigator.clipboard.writeText(pullUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    };
 
     return (
-      <div className="min-h-screen bg-white flex flex-col relative">
+      <div className="min-h-screen bg-white flex flex-col relative overflow-hidden">
         {/* Logo top left */}
-        <img
-          src="/logo.svg"
-          alt="Anatomy"
-          className="absolute top-6 left-6 z-50 w-[50vw] max-w-[500px] min-w-[250px] h-auto"
-        />
+        <a href="/">
+          <img
+            src="/logo.svg"
+            alt="Anatomy"
+            className="absolute top-6 left-6 z-50 w-[50vw] max-w-[500px] min-w-[250px] h-auto hover:opacity-60 transition-opacity cursor-pointer"
+          />
+        </a>
 
         {/* Appstar bottom right */}
         <img
@@ -251,52 +265,43 @@ export default function Editor() {
           className="absolute bottom-6 right-6 z-50 w-48 h-auto"
         />
 
-        {/* Main content - centered */}
-        <main className="flex-1 flex items-center justify-center px-6">
+        {/* Main content - absolutely centered like home page */}
+        <main className="absolute inset-0 flex items-center justify-center px-6 z-10">
           <div className="max-w-xl w-full space-y-16 text-base text-black">
             {/* What happened */}
             <div className="space-y-6">
-              <div className="uppercase">
-                Body shaped
-              </div>
+              <div className="uppercase">Your agent's new anatomy</div>
               <div className="space-y-4">
                 <div className="flex gap-4">
                   <span>01</span>
-                  <span>You arranged the parts</span>
+                  <span>You shaped your agent.</span>
                 </div>
                 <div className="flex gap-4">
                   <span>02</span>
-                  <span>Changes are ready to pull</span>
+                  <span>Changes are ready to pull.</span>
                 </div>
                 <div className="flex gap-4">
                   <span>03</span>
-                  <span>Your agent will absorb and become</span>
+                  <span>Your agent absorbs and becomes.</span>
                 </div>
               </div>
             </div>
 
             {/* Pull URL */}
             <div className="space-y-4">
-              <div className="uppercase">
-                Send this to your agent
-              </div>
+              <div className="uppercase">Tell your agent to pull</div>
               <div
                 onClick={copyToClipboard}
                 className="border border-black bg-white px-5 py-4 cursor-pointer hover:bg-gray-50 transition-colors"
               >
-                <code className="break-all">
-                  {copyText}
-                </code>
+                <code className="break-all">{pullUrl}</code>
               </div>
-              <p>
-                {copied ? 'Copied!' : 'Click to copy'}
-              </p>
+              <p>{copied ? "Copied!" : "Click to copy"}</p>
             </div>
           </div>
         </main>
-
       </div>
-    )
+    );
   }
 
   // Main editor
@@ -312,7 +317,7 @@ export default function Editor() {
               disabled={saving}
               className="text-black text-lg uppercase tracking-wider font-bold disabled:opacity-50"
             >
-              {saving ? 'saving...' : 'save'}
+              {saving ? "saving..." : "save"}
             </button>
             <button
               onClick={markReady}
@@ -335,7 +340,7 @@ export default function Editor() {
       <div
         ref={containerRef}
         className="flex-1 relative"
-        style={{ minHeight: '100vh' }}
+        style={{ minHeight: "100vh" }}
       >
         {/* Logo in top left */}
         <a href="/">
@@ -350,42 +355,41 @@ export default function Editor() {
         <div
           className="absolute inset-0 z-20"
           style={{
-            transform: 'scale(1.3)',
-            transformOrigin: 'center center'
+            transform: "scale(1.3)",
+            transformOrigin: "center center",
           }}
         >
           {/* Lobster background */}
           <div
             className="absolute inset-0 z-0 pointer-events-none p-24"
             style={{
-              backgroundImage: 'url(/lobster.png)',
-              backgroundSize: 'contain',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-              opacity: 0.15
+              backgroundImage: "url(/lobster.png)",
+              backgroundSize: "contain",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+              opacity: 0.15,
             }}
           />
 
           {bodyParts.map((part) => (
-          <Artifact
-            key={part.id}
-            part={part}
-            containerRef={containerRef}
-            onClick={() => {
-              if (!files[part.filename]) {
-                setFiles((prev) => ({
-                  ...prev,
-                  [part.filename]: `# ${part.label}\n\n`
-                }))
-              }
-              setSelectedPart(part)
-            }}
-            onPositionChange={(pos) => updatePartPosition(part.id, pos)}
-            onResize={(size) => updatePartSize(part.id, size)}
-          />
-        ))}
+            <Artifact
+              key={part.id}
+              part={part}
+              containerRef={containerRef}
+              onClick={() => {
+                if (!files[part.filename]) {
+                  setFiles((prev) => ({
+                    ...prev,
+                    [part.filename]: `# ${part.label}\n\n`,
+                  }));
+                }
+                setSelectedPart(part);
+              }}
+              onPositionChange={(pos) => updatePartPosition(part.id, pos)}
+              onResize={(size) => updatePartSize(part.id, size)}
+            />
+          ))}
         </div>
-
       </div>
 
       {/* Editor dialog */}
@@ -393,9 +397,11 @@ export default function Editor() {
         <TraitEditor
           partLabel={selectedPart.label}
           partFilename={selectedPart.filename}
-          content={files[selectedPart.filename] || ''}
+          content={files[selectedPart.filename] || ""}
           onClose={() => setSelectedPart(null)}
-          onSave={(content) => updateFileContent(selectedPart.filename, content)}
+          onSave={(content) =>
+            updateFileContent(selectedPart.filename, content)
+          }
         />
       )}
 
@@ -421,15 +427,16 @@ export default function Editor() {
             <div className="grid grid-cols-2 grid-rows-2 flex-1">
               {recommendations.map((rec, i) => {
                 const colors: Record<string, string> = {
-                  musician: '#024D4D',
-                  art: '#FF6600',
-                  poem: '#7A0085',
-                  book: '#0004FF'
-                }
-                const bgColor = colors[rec.category] || '#808080'
-                const searchUrl = rec.category === 'musician' && rec.searchQuery
-                  ? `https://open.spotify.com/search/${encodeURIComponent(rec.searchQuery)}`
-                  : `https://www.perplexity.ai/search?q=${encodeURIComponent(rec.searchQuery || rec.title)}`
+                  musician: "#024D4D",
+                  art: "#FF6600",
+                  poem: "#7A0085",
+                  book: "#0004FF",
+                };
+                const bgColor = colors[rec.category] || "#808080";
+                const searchUrl =
+                  rec.category === "musician" && rec.searchQuery
+                    ? `https://open.spotify.com/search/${encodeURIComponent(rec.searchQuery)}`
+                    : `https://www.perplexity.ai/search?q=${encodeURIComponent(rec.searchQuery || rec.title)}`;
 
                 return (
                   <a
@@ -460,7 +467,7 @@ export default function Editor() {
                       </p>
                     </div>
                   </a>
-                )
+                );
               })}
             </div>
           </div>
@@ -474,5 +481,5 @@ export default function Editor() {
         </div>
       )}
     </div>
-  )
+  );
 }
