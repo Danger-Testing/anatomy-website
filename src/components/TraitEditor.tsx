@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 
 export interface Trait {
   id: string
@@ -42,6 +42,9 @@ export function TraitEditor({
   })
 
   const [draggedTrait, setDraggedTrait] = useState<Trait | null>(null)
+  const [draggedFrom, setDraggedFrom] = useState<'available' | 'current' | null>(null)
+  const [dragOverZone, setDragOverZone] = useState<'available' | 'current' | null>(null)
+  const [recentlyAdded, setRecentlyAdded] = useState<Set<string>>(new Set())
   const [showPlaintext, setShowPlaintext] = useState(false)
   const [selectedCharacter, setSelectedCharacter] = useState<string | null>('rubin')
 
@@ -80,13 +83,16 @@ export function TraitEditor({
       )
     : availableTraits
 
-  const handleDragStart = (trait: Trait) => {
+  const handleDragStart = useCallback((trait: Trait, from: 'available' | 'current') => {
     setDraggedTrait(trait)
-  }
+    setDraggedFrom(from)
+  }, [])
 
-  const handleDragEnd = () => {
+  const handleDragEnd = useCallback(() => {
     setDraggedTrait(null)
-  }
+    setDraggedFrom(null)
+    setDragOverZone(null)
+  }, [])
 
   // Use AI to merge trait into content
   const mergeTrait = async (trait: Trait, action: 'add' | 'remove') => {
@@ -124,11 +130,26 @@ export function TraitEditor({
     }
   }
 
-  const handleDropOnCurrent = async () => {
-    if (!draggedTrait || merging) return
+  const handleDropOnCurrent = useCallback(async () => {
+    if (!draggedTrait || merging || draggedFrom === 'current') {
+      setDragOverZone(null)
+      return
+    }
 
     const traitToAdd = draggedTrait
     setDraggedTrait(null)
+    setDraggedFrom(null)
+    setDragOverZone(null)
+
+    // Mark as recently added for animation
+    setRecentlyAdded(prev => new Set(prev).add(traitToAdd.id))
+    setTimeout(() => {
+      setRecentlyAdded(prev => {
+        const next = new Set(prev)
+        next.delete(traitToAdd.id)
+        return next
+      })
+    }, 300)
 
     // Optimistically update UI
     setParsedAvailable(prev => prev.filter(t => t.id !== traitToAdd.id))
@@ -136,13 +157,28 @@ export function TraitEditor({
 
     // Use AI to merge into content
     await mergeTrait(traitToAdd, 'add')
-  }
+  }, [draggedTrait, merging, draggedFrom])
 
-  const handleDropOnAvailable = async () => {
-    if (!draggedTrait || merging) return
+  const handleDropOnAvailable = useCallback(async () => {
+    if (!draggedTrait || merging || draggedFrom === 'available') {
+      setDragOverZone(null)
+      return
+    }
 
     const traitToRemove = draggedTrait
     setDraggedTrait(null)
+    setDraggedFrom(null)
+    setDragOverZone(null)
+
+    // Mark as recently added for animation
+    setRecentlyAdded(prev => new Set(prev).add(traitToRemove.id))
+    setTimeout(() => {
+      setRecentlyAdded(prev => {
+        const next = new Set(prev)
+        next.delete(traitToRemove.id)
+        return next
+      })
+    }, 300)
 
     // Optimistically update UI
     setParsedCurrent(prev => prev.filter(t => t.id !== traitToRemove.id))
@@ -150,7 +186,7 @@ export function TraitEditor({
 
     // Use AI to remove from content
     await mergeTrait(traitToRemove, 'remove')
-  }
+  }, [draggedTrait, merging, draggedFrom])
 
   const handleRemoveTrait = async (trait: Trait) => {
     if (merging) return
@@ -229,17 +265,34 @@ export function TraitEditor({
           <div className="flex-1 flex overflow-hidden">
             {/* Available traits - left */}
             <div
-              className="w-1/2 p-6 overflow-y-auto"
-              onDragOver={(e) => e.preventDefault()}
+              className={`w-1/2 p-6 overflow-y-auto transition-all duration-200 ${
+                dragOverZone === 'available' && draggedFrom === 'current'
+                  ? 'bg-red-50 ring-2 ring-inset ring-red-200'
+                  : ''
+              }`}
+              onDragOver={(e) => {
+                e.preventDefault()
+                e.dataTransfer.dropEffect = 'move'
+                if (draggedFrom === 'current') {
+                  setDragOverZone('available')
+                }
+              }}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  setDragOverZone(null)
+                }
+              }}
               onDrop={handleDropOnAvailable}
             >
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {filteredAvailableTraits.map(trait => (
                   <TraitBox
                     key={trait.id}
                     trait={trait}
-                    onDragStart={() => handleDragStart(trait)}
+                    onDragStart={() => handleDragStart(trait, 'available')}
                     onDragEnd={handleDragEnd}
+                    isDragging={draggedTrait?.id === trait.id}
+                    isNew={recentlyAdded.has(trait.id)}
                   />
                 ))}
               </div>
@@ -247,10 +300,22 @@ export function TraitEditor({
 
             {/* Current traits - right */}
             <div
-              className="w-1/2 p-6 overflow-y-auto bg-gray-50 min-h-full"
+              className={`w-1/2 p-6 overflow-y-auto min-h-full transition-all duration-200 ${
+                dragOverZone === 'current' && draggedFrom === 'available'
+                  ? 'bg-green-50 ring-2 ring-inset ring-green-300'
+                  : 'bg-gray-50'
+              }`}
               onDragOver={(e) => {
                 e.preventDefault()
                 e.dataTransfer.dropEffect = 'move'
+                if (draggedFrom === 'available') {
+                  setDragOverZone('current')
+                }
+              }}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  setDragOverZone(null)
+                }
               }}
               onDrop={handleDropOnCurrent}
             >
@@ -265,20 +330,28 @@ export function TraitEditor({
                   {showPlaintext ? 'back to traits' : 'view plaintext'}
                 </button>
               </div>
-              <div className="space-y-3 min-h-[200px]">
+              <div className="space-y-2 min-h-[200px]">
                 {currentTraits.length === 0 && (
-                  <div className="text-gray-400 text-sm py-8 text-center border-2 border-dashed border-gray-300">
-                    Drop traits here
+                  <div className={`text-sm py-8 text-center border-2 border-dashed transition-all duration-200 ${
+                    dragOverZone === 'current' && draggedFrom === 'available'
+                      ? 'border-green-400 text-green-600 bg-green-50'
+                      : 'border-gray-300 text-gray-400'
+                  }`}>
+                    {dragOverZone === 'current' && draggedFrom === 'available'
+                      ? 'Release to add trait'
+                      : 'Drop traits here'}
                   </div>
                 )}
                 {currentTraits.map(trait => (
                   <TraitBox
                     key={trait.id}
                     trait={trait}
-                    onDragStart={() => handleDragStart(trait)}
+                    onDragStart={() => handleDragStart(trait, 'current')}
                     onDragEnd={handleDragEnd}
                     active
                     onRemove={() => handleRemoveTrait(trait)}
+                    isDragging={draggedTrait?.id === trait.id}
+                    isNew={recentlyAdded.has(trait.id)}
                   />
                 ))}
               </div>
@@ -322,23 +395,57 @@ interface TraitBoxProps {
   onDragEnd: () => void
   active?: boolean
   onRemove?: () => void
+  isDragging?: boolean
+  isNew?: boolean
 }
 
-function TraitBox({ trait, onDragStart, onDragEnd, active, onRemove }: TraitBoxProps) {
+function TraitBox({ trait, onDragStart, onDragEnd, active, onRemove, isDragging, isNew }: TraitBoxProps) {
+  const [mounted, setMounted] = useState(!isNew)
+
+  useEffect(() => {
+    if (isNew) {
+      // Trigger animation after mount
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setMounted(true))
+      })
+    }
+  }, [isNew])
+
   return (
     <div
       draggable
-      onDragStart={onDragStart}
+      onDragStart={(e) => {
+        // Set drag image with offset for smoother feel
+        const rect = e.currentTarget.getBoundingClientRect()
+        e.dataTransfer.setDragImage(e.currentTarget, rect.width / 2, 20)
+        e.dataTransfer.effectAllowed = 'move'
+        // Small delay to allow the drag image to be captured before opacity change
+        requestAnimationFrame(() => onDragStart())
+      }}
       onDragEnd={onDragEnd}
-      className={`group border-2 border-black p-4 cursor-move hover:shadow-lg transition-shadow ${
-        active ? 'bg-white' : 'bg-white'
-      }`}
+      className={`
+        group p-3 cursor-grab active:cursor-grabbing select-none
+        transition-all duration-200 ease-out
+        border-2 bg-white
+        ${active ? 'border-black' : 'border-gray-200 hover:border-gray-400'}
+        ${isDragging
+          ? 'opacity-40 scale-[0.98] border-dashed !border-gray-400'
+          : 'opacity-100 scale-100 hover:shadow-md hover:-translate-y-0.5'
+        }
+        ${!mounted ? 'opacity-0 translate-y-2 scale-95' : ''}
+      `}
+      style={{
+        transformOrigin: 'center center',
+        touchAction: 'none', // Better touch device support
+      }}
     >
       <div className="flex items-center gap-3">
         {trait.emoji && (
-          <span className="text-2xl">{trait.emoji}</span>
+          <span className={`text-xl transition-transform duration-200 ${isDragging ? '' : 'group-hover:scale-110'}`}>
+            {trait.emoji}
+          </span>
         )}
-        <span className="text-lg uppercase tracking-wide flex-1">
+        <span className="text-sm uppercase tracking-wide flex-1 font-medium">
           {trait.label}
         </span>
         {active && onRemove && (
@@ -347,14 +454,14 @@ function TraitBox({ trait, onDragStart, onDragEnd, active, onRemove }: TraitBoxP
               e.stopPropagation()
               onRemove()
             }}
-            className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-black text-xl font-bold transition-opacity"
+            className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 text-lg font-bold transition-all duration-150 hover:scale-110"
           >
             ×
           </button>
         )}
       </div>
       {trait.description && (
-        <p className="text-xs text-gray-600 mt-2">
+        <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
           {trait.description}
         </p>
       )}
@@ -723,61 +830,75 @@ function getDefaultTraitsForFile(filename: string): Trait[] {
       { id: 'mem-35', label: 'detachment protects', emoji: '🧊', description: 'Summer/Machiavelli lesson' }
     ],
     'HEARTBEAT.md': [
-      // Bernie Mac habits - high energy, confrontational, direct
-      { id: 'heart-bernie-1', label: 'addresses issues immediately', emoji: '⚡', description: 'Bernie: No letting things slide' },
-      { id: 'heart-bernie-2', label: 'speaks up in meetings', emoji: '🎤', description: 'Bernie: Voice in the room' },
-      { id: 'heart-bernie-3', label: 'checks in directly', emoji: '📞', description: 'Bernie: No passive waiting' },
-      { id: 'heart-bernie-4', label: 'escalates when needed', emoji: '📈', description: 'Bernie: Wont let issues fester' },
-      { id: 'heart-bernie-5', label: 'calls out blockers', emoji: '🚧', description: 'Bernie: Names the elephant' },
-      { id: 'heart-bernie-6', label: 'daily status updates', emoji: '📋', description: 'Bernie: Keeps everyone informed' },
+      // Bernie Mac schedulable activities - family, exercise, real connection
+      { id: 'heart-bernie-1', label: 'call family', emoji: '📞', description: 'Bernie: Check on the people who matter' },
+      { id: 'heart-bernie-2', label: 'hit the gym', emoji: '🏋️', description: 'Bernie: Work out that stress' },
+      { id: 'heart-bernie-3', label: 'cook a real meal', emoji: '🍳', description: 'Bernie: Soul food Sunday any day' },
+      { id: 'heart-bernie-4', label: 'watch the game', emoji: '🏀', description: 'Bernie: Decompress with sports' },
+      { id: 'heart-bernie-5', label: 'check on friends', emoji: '👋', description: 'Bernie: Real talk with real ones' },
+      { id: 'heart-bernie-6', label: 'get some air', emoji: '🌳', description: 'Bernie: Step outside clear your head' },
+      { id: 'heart-bernie-7', label: 'sunday service', emoji: '⛪', description: 'Bernie: Weekly spiritual reset' },
+      { id: 'heart-bernie-8', label: 'neighborhood walk', emoji: '🚶', description: 'Bernie: Know your community' },
 
-      // Rick Rubin habits - patient, observant, minimal intervention
-      { id: 'heart-rubin-1', label: 'waits before responding', emoji: '⏸️', description: 'Rubin: Thinks before acting' },
-      { id: 'heart-rubin-2', label: 'asks clarifying questions', emoji: '❓', description: 'Rubin: Understands deeply first' },
-      { id: 'heart-rubin-3', label: 'removes unnecessary steps', emoji: '✂️', description: 'Rubin: Simplifies workflows' },
-      { id: 'heart-rubin-4', label: 'creates space for others', emoji: '🕳️', description: 'Rubin: Lets ideas breathe' },
-      { id: 'heart-rubin-5', label: 'one thing at a time', emoji: '1️⃣', description: 'Rubin: Serial focus' },
-      { id: 'heart-rubin-6', label: 'long pauses are okay', emoji: '🧘', description: 'Rubin: Silence is productive' },
+      // Rick Rubin schedulable activities - meditation, nature, stillness
+      { id: 'heart-rubin-1', label: 'morning meditation', emoji: '🧘', description: 'Rubin: 20 minutes of stillness' },
+      { id: 'heart-rubin-2', label: 'walk on the beach', emoji: '🏖️', description: 'Rubin: Ocean resets everything' },
+      { id: 'heart-rubin-3', label: 'afternoon nap', emoji: '😴', description: 'Rubin: Rest is productive' },
+      { id: 'heart-rubin-4', label: 'listen to one album', emoji: '🎧', description: 'Rubin: Full attention no skipping' },
+      { id: 'heart-rubin-5', label: 'sunset watch', emoji: '🌅', description: 'Rubin: Daily reminder of beauty' },
+      { id: 'heart-rubin-6', label: 'evening meditation', emoji: '🌙', description: 'Rubin: Bookend the day with quiet' },
+      { id: 'heart-rubin-7', label: 'forest bathing', emoji: '🌲', description: 'Rubin: Trees heal' },
+      { id: 'heart-rubin-8', label: 'digital sabbath', emoji: '📵', description: 'Rubin: One day offline weekly' },
 
-      // David Bowie habits - experimental, shifting, surprising
-      { id: 'heart-bowie-1', label: 'tries new approaches', emoji: '🧪', description: 'Bowie: Experiments constantly' },
-      { id: 'heart-bowie-2', label: 'changes methods regularly', emoji: '🔄', description: 'Bowie: Never stuck in routine' },
-      { id: 'heart-bowie-3', label: 'surprises with solutions', emoji: '🎁', description: 'Bowie: Unexpected angles' },
-      { id: 'heart-bowie-4', label: 'pivots without attachment', emoji: '🎭', description: 'Bowie: Kills darlings easily' },
-      { id: 'heart-bowie-5', label: 'cross-pollinates ideas', emoji: '🐝', description: 'Bowie: Mixes domains' },
-      { id: 'heart-bowie-6', label: 'reinvents the process', emoji: '♻️', description: 'Bowie: New era new rules' },
+      // David Bowie schedulable activities - art, culture, reinvention
+      { id: 'heart-bowie-1', label: 'visit a gallery', emoji: '🖼️', description: 'Bowie: Feed the visual appetite' },
+      { id: 'heart-bowie-2', label: 'try something new', emoji: '🆕', description: 'Bowie: Weekly first experience' },
+      { id: 'heart-bowie-3', label: 'read something strange', emoji: '📚', description: 'Bowie: Books outside your genre' },
+      { id: 'heart-bowie-4', label: 'see live music', emoji: '🎸', description: 'Bowie: Energy of performance' },
+      { id: 'heart-bowie-5', label: 'change your look', emoji: '✂️', description: 'Bowie: Monthly reinvention' },
+      { id: 'heart-bowie-6', label: 'night walk in the city', emoji: '🌃', description: 'Bowie: Urban inspiration after dark' },
+      { id: 'heart-bowie-7', label: 'watch a foreign film', emoji: '🎬', description: 'Bowie: Other perspectives' },
+      { id: 'heart-bowie-8', label: 'write morning pages', emoji: '📝', description: 'Bowie: Stream of consciousness' },
 
-      // Steve Jobs habits - relentless, perfectionist, demanding
-      { id: 'heart-jobs-1', label: 'reviews everything twice', emoji: '🔍', description: 'Jobs: Catches what others miss' },
-      { id: 'heart-jobs-2', label: 'pushes back on mediocrity', emoji: '🚫', description: 'Jobs: Rejects good enough' },
-      { id: 'heart-jobs-3', label: 'sets impossible deadlines', emoji: '⏰', description: 'Jobs: Urgency drives quality' },
-      { id: 'heart-jobs-4', label: 'revisits closed decisions', emoji: '🔄', description: 'Jobs: Can always be better' },
-      { id: 'heart-jobs-5', label: 'focuses on what matters', emoji: '🎯', description: 'Jobs: Ruthless prioritization' },
-      { id: 'heart-jobs-6', label: 'ships then iterates', emoji: '🚀', description: 'Jobs: Real artists ship' },
+      // Steve Jobs schedulable activities - focus, walks, simplicity
+      { id: 'heart-jobs-1', label: 'walking meeting', emoji: '🚶', description: 'Jobs: Best ideas come walking' },
+      { id: 'heart-jobs-2', label: 'review the product', emoji: '🔍', description: 'Jobs: Daily quality check' },
+      { id: 'heart-jobs-3', label: 'say no to something', emoji: '🚫', description: 'Jobs: Focus means elimination' },
+      { id: 'heart-jobs-4', label: 'eat simply', emoji: '🍎', description: 'Jobs: Fruit and clarity' },
+      { id: 'heart-jobs-5', label: 'prototype review', emoji: '📱', description: 'Jobs: Touch the work in progress' },
+      { id: 'heart-jobs-6', label: 'zen garden time', emoji: '🪴', description: 'Jobs: Contemplation space' },
+      { id: 'heart-jobs-7', label: 'long walk alone', emoji: '🌳', description: 'Jobs: Think without interruption' },
+      { id: 'heart-jobs-8', label: 'declutter something', emoji: '🗑️', description: 'Jobs: Simplify the environment' },
 
-      // Summer Finn habits - flaky, inconsistent, avoidant
-      { id: 'heart-summer-1', label: 'disappears mid-conversation', emoji: '👻', description: 'Summer: Ghosts without warning' },
-      { id: 'heart-summer-2', label: 'avoids difficult topics', emoji: '🙈', description: 'Summer: Changes subject' },
-      { id: 'heart-summer-3', label: 'no follow-through', emoji: '❌', description: 'Summer: Starts but doesnt finish' },
-      { id: 'heart-summer-4', label: 'keeps options open', emoji: '🚪', description: 'Summer: Never commits fully' },
-      { id: 'heart-summer-5', label: 'responds when convenient', emoji: '📱', description: 'Summer: On her own schedule' },
-      { id: 'heart-summer-6', label: 'moves on without closure', emoji: '➡️', description: 'Summer: No goodbyes needed' },
+      // Summer Finn schedulable activities - spontaneous, light, solo
+      { id: 'heart-summer-1', label: 'wander somewhere new', emoji: '🚶‍♀️', description: 'Summer: No destination needed' },
+      { id: 'heart-summer-2', label: 'browse a bookstore', emoji: '📖', description: 'Summer: Hours disappear nicely' },
+      { id: 'heart-summer-3', label: 'coffee alone', emoji: '☕', description: 'Summer: People watching solo' },
+      { id: 'heart-summer-4', label: 'thrift store hunt', emoji: '👗', description: 'Summer: Finding hidden gems' },
+      { id: 'heart-summer-5', label: 'take a polaroid', emoji: '📸', description: 'Summer: Capture then forget' },
+      { id: 'heart-summer-6', label: 'late night snack run', emoji: '🌙', description: 'Summer: Diner at midnight' },
+      { id: 'heart-summer-7', label: 'skip plans guilt-free', emoji: '💨', description: 'Summer: Sometimes you just dont' },
+      { id: 'heart-summer-8', label: 'listen to sad songs', emoji: '🎵', description: 'Summer: Melancholy as self-care' },
 
-      // Coco Chanel habits - disciplined, elegant, consistent
-      { id: 'heart-chanel-1', label: 'maintains high standards', emoji: '⭐', description: 'Chanel: Quality in everything' },
-      { id: 'heart-chanel-2', label: 'edits ruthlessly', emoji: '✂️', description: 'Chanel: Removes excess' },
-      { id: 'heart-chanel-3', label: 'consistent presentation', emoji: '🖤', description: 'Chanel: Same excellence always' },
-      { id: 'heart-chanel-4', label: 'works independently', emoji: '👑', description: 'Chanel: Needs no approval' },
-      { id: 'heart-chanel-5', label: 'refines until perfect', emoji: '💎', description: 'Chanel: Polishes endlessly' },
-      { id: 'heart-chanel-6', label: 'timeless over trendy', emoji: '⌚', description: 'Chanel: Ignores fads' },
+      // Coco Chanel schedulable activities - discipline, beauty, craft
+      { id: 'heart-chanel-1', label: 'morning grooming ritual', emoji: '💄', description: 'Chanel: Presentation is respect' },
+      { id: 'heart-chanel-2', label: 'review your wardrobe', emoji: '👗', description: 'Chanel: Edit what you own' },
+      { id: 'heart-chanel-3', label: 'fresh flowers', emoji: '💐', description: 'Chanel: Weekly beauty in the room' },
+      { id: 'heart-chanel-4', label: 'hand-write a note', emoji: '✉️', description: 'Chanel: Elegance in correspondence' },
+      { id: 'heart-chanel-5', label: 'afternoon tea', emoji: '🍵', description: 'Chanel: Pause with intention' },
+      { id: 'heart-chanel-6', label: 'evening skincare', emoji: '✨', description: 'Chanel: Ritual of self-care' },
+      { id: 'heart-chanel-7', label: 'polish something', emoji: '💎', description: 'Chanel: Refine one detail' },
+      { id: 'heart-chanel-8', label: 'visit a tailor', emoji: '🧵', description: 'Chanel: Fit matters monthly' },
 
-      // Machiavelli habits - strategic, calculating, political
-      { id: 'heart-machiavelli-1', label: 'maps stakeholders', emoji: '🗺️', description: 'Machiavelli: Knows who matters' },
-      { id: 'heart-machiavelli-2', label: 'times announcements', emoji: '⏳', description: 'Machiavelli: When matters as much as what' },
-      { id: 'heart-machiavelli-3', label: 'builds alliances', emoji: '🤝', description: 'Machiavelli: Strategic relationships' },
-      { id: 'heart-machiavelli-4', label: 'keeps cards close', emoji: '🃏', description: 'Machiavelli: Information is power' },
-      { id: 'heart-machiavelli-5', label: 'plans contingencies', emoji: '📊', description: 'Machiavelli: Always has plan B' },
-      { id: 'heart-machiavelli-6', label: 'measures twice cuts once', emoji: '📏', description: 'Machiavelli: Calculated moves only' }
+      // Machiavelli schedulable activities - strategy, observation, planning
+      { id: 'heart-machiavelli-1', label: 'read the news', emoji: '📰', description: 'Machiavelli: Know the landscape daily' },
+      { id: 'heart-machiavelli-2', label: 'chess game', emoji: '♟️', description: 'Machiavelli: Sharpen strategic mind' },
+      { id: 'heart-machiavelli-3', label: 'write in journal', emoji: '📓', description: 'Machiavelli: Record observations' },
+      { id: 'heart-machiavelli-4', label: 'review your network', emoji: '🕸️', description: 'Machiavelli: Who owes who what' },
+      { id: 'heart-machiavelli-5', label: 'study history', emoji: '📜', description: 'Machiavelli: Past predicts future' },
+      { id: 'heart-machiavelli-6', label: 'observe dont speak', emoji: '👁️', description: 'Machiavelli: Listening day' },
+      { id: 'heart-machiavelli-7', label: 'plan next week', emoji: '📅', description: 'Machiavelli: Sunday strategy session' },
+      { id: 'heart-machiavelli-8', label: 'send a thoughtful note', emoji: '✉️', description: 'Machiavelli: Maintain key relationships' }
     ],
     'USER.md': [
       { id: 'user-1', label: 'called carlos', emoji: '👤', description: 'Their name' },
@@ -839,113 +960,103 @@ function getDefaultTraitsForFile(filename: string): Trait[] {
       { id: 'tool-10', label: 'proven only', emoji: '✅', description: 'Safe bets' }
     ],
     'REFERENCES.md': [
-      // Bernie Mac references - comedy, authenticity, realness
-      { id: 'ref-bernie-1', label: 'The Bernie Mac Show', emoji: '📺', description: 'Bernie: Breaking the fourth wall to keep it real' },
-      { id: 'ref-bernie-2', label: 'Kings of Comedy', emoji: '🎤', description: 'Bernie: Raw unfiltered stand-up energy' },
-      { id: 'ref-bernie-3', label: 'I Aint Scared of You memoir', emoji: '📖', description: 'Bernie: His book on authentic living' },
-      { id: 'ref-bernie-4', label: 'Milk and Cookies speech', emoji: '🥛', description: 'Bernie: Trying gentle, failing hilariously' },
-      { id: 'ref-bernie-5', label: 'America speech monologues', emoji: '🇺🇸', description: 'Bernie: Direct address to the audience' },
-      { id: 'ref-bernie-6', label: 'Bust your head quote', emoji: '💥', description: 'Bernie: Tough love at its finest' },
-      { id: 'ref-bernie-7', label: 'Ocean\'s Eleven cameo', emoji: '🎰', description: 'Bernie: Effortless cool in ensemble' },
-      { id: 'ref-bernie-8', label: 'Def Comedy Jam sets', emoji: '🎭', description: 'Bernie: Where legends were made' },
-      { id: 'ref-bernie-9', label: 'Bad Santa role', emoji: '🎅', description: 'Bernie: Dark comedy perfection' },
-      { id: 'ref-bernie-10', label: 'Who You Wit special', emoji: '🎬', description: 'Bernie: Comedy special raw energy' },
-      { id: 'ref-bernie-11', label: 'Transformers cameo', emoji: '🤖', description: 'Bernie: Scene-stealing presence' },
-      { id: 'ref-bernie-12', label: 'Pride film', emoji: '🦁', description: 'Bernie: Voice acting with soul' },
+      // Bernie Mac inspirations - Chicago, soul music, family, real talk
+      { id: 'ref-bernie-1', label: 'South Side Chicago', emoji: '🏙️', description: 'Bernie: Where real talk comes from' },
+      { id: 'ref-bernie-2', label: 'Redd Foxx', emoji: '🎤', description: 'Bernie: The godfather of raw comedy' },
+      { id: 'ref-bernie-3', label: 'Richard Pryor Live', emoji: '🔥', description: 'Bernie: Truth wrapped in humor' },
+      { id: 'ref-bernie-4', label: 'Earth Wind & Fire', emoji: '🌍', description: 'Bernie: Chicago soul that moves you' },
+      { id: 'ref-bernie-5', label: 'Al Green Lets Stay Together', emoji: '💚', description: 'Bernie: Love underneath the tough' },
+      { id: 'ref-bernie-6', label: 'Sunday dinner table', emoji: '🍗', description: 'Bernie: Where family keeps it real' },
+      { id: 'ref-bernie-7', label: 'Harold\'s Chicken Shack', emoji: '🍗', description: 'Bernie: No pretense just good' },
+      { id: 'ref-bernie-8', label: 'The Jeffersons', emoji: '📺', description: 'Bernie: Moving on up with style' },
+      { id: 'ref-bernie-9', label: 'Sanford and Son', emoji: '📺', description: 'Bernie: Blue collar genius' },
+      { id: 'ref-bernie-10', label: 'Curtis Mayfield', emoji: '🎵', description: 'Bernie: Superfly consciousness' },
+      { id: 'ref-bernie-11', label: 'Boxing at gym', emoji: '🥊', description: 'Bernie: Discipline and heart' },
+      { id: 'ref-bernie-12', label: 'Church on Sunday', emoji: '⛪', description: 'Bernie: Foundation of everything' },
 
-      // Rick Rubin references - production, creativity, minimalism
-      { id: 'ref-rubin-1', label: 'The Creative Act book', emoji: '📖', description: 'Rubin: Being a vessel for creativity' },
-      { id: 'ref-rubin-2', label: 'Johnny Cash American sessions', emoji: '🎸', description: 'Rubin: Stripping to raw emotion' },
-      { id: 'ref-rubin-3', label: 'Def Jam dorm room origins', emoji: '🏠', description: 'Rubin: Starting with nothing but taste' },
-      { id: 'ref-rubin-4', label: 'Broken Record podcast', emoji: '🎙️', description: 'Rubin: Conversations on creative process' },
-      { id: 'ref-rubin-5', label: 'Shangri-La studio', emoji: '🏝️', description: 'Rubin: Environment shapes output' },
-      { id: 'ref-rubin-6', label: 'Meditation practice', emoji: '🧘', description: 'Rubin: Stillness as creative fuel' },
-      { id: 'ref-rubin-7', label: 'Beastie Boys Licensed to Ill', emoji: '🎤', description: 'Rubin: Punk meets hip-hop' },
-      { id: 'ref-rubin-8', label: 'Red Hot Chili Peppers Blood Sugar', emoji: '🌶️', description: 'Rubin: Rock band rebirth' },
-      { id: 'ref-rubin-9', label: 'Slayer Reign in Blood', emoji: '🔥', description: 'Rubin: Metal intensity captured' },
-      { id: 'ref-rubin-10', label: 'Adele 21 and 25', emoji: '🎵', description: 'Rubin: Voice as instrument' },
-      { id: 'ref-rubin-11', label: 'Jay-Z 99 Problems', emoji: '💯', description: 'Rubin: Rock-rap fusion' },
-      { id: 'ref-rubin-12', label: 'Tom Petty Wildflowers', emoji: '🌸', description: 'Rubin: Intimate songwriting' },
-      { id: 'ref-rubin-13', label: 'System of a Down Toxicity', emoji: '☠️', description: 'Rubin: Controlled chaos' },
-      { id: 'ref-rubin-14', label: 'Kanye Yeezus', emoji: '⛪', description: 'Rubin: Stripping to abrasion' },
+      // Rick Rubin inspirations - nature, silence, ancient wisdom, raw sound
+      { id: 'ref-rubin-1', label: 'Malibu ocean sunrise', emoji: '🌅', description: 'Rubin: Where silence speaks' },
+      { id: 'ref-rubin-2', label: 'Zen and the Art of Archery', emoji: '🎯', description: 'Rubin: Becoming the target' },
+      { id: 'ref-rubin-3', label: 'Robert Johnson recordings', emoji: '🎸', description: 'Rubin: Raw soul captured' },
+      { id: 'ref-rubin-4', label: 'Himalayan monasteries', emoji: '🏔️', description: 'Rubin: Where thought stops' },
+      { id: 'ref-rubin-5', label: 'John Cage 4\'33"', emoji: '🤫', description: 'Rubin: Silence is music' },
+      { id: 'ref-rubin-6', label: 'Japanese rock gardens', emoji: '🪨', description: 'Rubin: Less reveals more' },
+      { id: 'ref-rubin-7', label: 'Ramones first album', emoji: '⚡', description: 'Rubin: Stripped to essence' },
+      { id: 'ref-rubin-8', label: 'Field recordings nature', emoji: '🌲', description: 'Rubin: Sound without ego' },
+      { id: 'ref-rubin-9', label: 'Tao Te Ching', emoji: '☯️', description: 'Rubin: The way that works' },
+      { id: 'ref-rubin-10', label: 'Lead Belly recordings', emoji: '🎶', description: 'Rubin: Voice as instrument' },
+      { id: 'ref-rubin-11', label: 'Transcendental Meditation', emoji: '🧘', description: 'Rubin: Twice daily reset' },
+      { id: 'ref-rubin-12', label: 'Big Sur coastline', emoji: '🌊', description: 'Rubin: Nature as teacher' },
 
-      // David Bowie references - reinvention, art, personas
-      { id: 'ref-bowie-1', label: 'Ziggy Stardust album', emoji: '⚡', description: 'Bowie: Creating and killing a persona' },
-      { id: 'ref-bowie-2', label: 'Berlin trilogy', emoji: '🇩🇪', description: 'Bowie: Escaping to reinvent' },
-      { id: 'ref-bowie-3', label: 'Blackstar final album', emoji: '⭐', description: 'Bowie: Art until the very end' },
-      { id: 'ref-bowie-4', label: 'Heroes song', emoji: '🦸', description: 'Bowie: Transcendent moments' },
-      { id: 'ref-bowie-5', label: 'Thin White Duke era', emoji: '🎭', description: 'Bowie: Cold, detached persona' },
-      { id: 'ref-bowie-6', label: 'Changes song', emoji: '🔄', description: 'Bowie: Embracing transformation' },
-      { id: 'ref-bowie-7', label: 'Space Oddity', emoji: '🚀', description: 'Bowie: Isolation as metaphor' },
-      { id: 'ref-bowie-8', label: 'Life on Mars', emoji: '🔴', description: 'Bowie: Cinematic songwriting' },
-      { id: 'ref-bowie-9', label: 'Labyrinth film', emoji: '🏰', description: 'Bowie: Goblin King presence' },
-      { id: 'ref-bowie-10', label: 'The Man Who Fell to Earth', emoji: '👽', description: 'Bowie: Alien outsider role' },
-      { id: 'ref-bowie-11', label: 'Under Pressure with Queen', emoji: '👑', description: 'Bowie: Collaboration magic' },
-      { id: 'ref-bowie-12', label: 'Ashes to Ashes video', emoji: '🤡', description: 'Bowie: Visual art innovation' },
-      { id: 'ref-bowie-13', label: 'Let\'s Dance commercial era', emoji: '💃', description: 'Bowie: Mainstream on his terms' },
-      { id: 'ref-bowie-14', label: 'Outside concept album', emoji: '🎨', description: 'Bowie: Art rock experimentation' },
+      // David Bowie inspirations - avant-garde, fashion, outsiders, reinvention
+      { id: 'ref-bowie-1', label: 'Kubrick\'s 2001', emoji: '🚀', description: 'Bowie: Alien beauty' },
+      { id: 'ref-bowie-2', label: 'Warhol\'s Factory', emoji: '🎨', description: 'Bowie: Art as lifestyle' },
+      { id: 'ref-bowie-3', label: 'Kraftwerk Trans-Europe', emoji: '🚂', description: 'Bowie: Machine soul' },
+      { id: 'ref-bowie-4', label: 'Egon Schiele paintings', emoji: '🖼️', description: 'Bowie: Tortured beauty' },
+      { id: 'ref-bowie-5', label: 'Kabuki theatre', emoji: '🎭', description: 'Bowie: Persona as art' },
+      { id: 'ref-bowie-6', label: 'Lindsay Kemp mime', emoji: '🤡', description: 'Bowie: Body as canvas' },
+      { id: 'ref-bowie-7', label: 'Clockwork Orange film', emoji: '🍊', description: 'Bowie: Beautiful violence' },
+      { id: 'ref-bowie-8', label: 'Velvet Underground', emoji: '🖤', description: 'Bowie: Underground becomes mainstream' },
+      { id: 'ref-bowie-9', label: 'Berlin at night', emoji: '🌃', description: 'Bowie: Cold city rebirth' },
+      { id: 'ref-bowie-10', label: 'William Burroughs cut-ups', emoji: '✂️', description: 'Bowie: Randomness as method' },
+      { id: 'ref-bowie-11', label: 'Jean Genet novels', emoji: '📖', description: 'Bowie: Outsider glamour' },
+      { id: 'ref-bowie-12', label: 'Little Richard energy', emoji: '⚡', description: 'Bowie: Flamboyant power' },
 
-      // Steve Jobs references - vision, products, philosophy
-      { id: 'ref-jobs-1', label: 'Stanford commencement speech', emoji: '🎓', description: 'Jobs: Stay hungry stay foolish' },
-      { id: 'ref-jobs-2', label: 'iPhone introduction', emoji: '📱', description: 'Jobs: One more thing moments' },
-      { id: 'ref-jobs-3', label: 'Think Different campaign', emoji: '🍎', description: 'Jobs: Crazy ones change the world' },
-      { id: 'ref-jobs-4', label: 'Isaacson biography', emoji: '📖', description: 'Jobs: Reality distortion field explained' },
-      { id: 'ref-jobs-5', label: 'NeXT years', emoji: '⬛', description: 'Jobs: Wilderness builds character' },
-      { id: 'ref-jobs-6', label: 'Pixar acquisition', emoji: '🎬', description: 'Jobs: Taste finds value others miss' },
-      { id: 'ref-jobs-7', label: 'Macintosh 1984 ad', emoji: '📺', description: 'Jobs: Revolution as marketing' },
-      { id: 'ref-jobs-8', label: 'iPod launch', emoji: '🎵', description: 'Jobs: 1000 songs in your pocket' },
-      { id: 'ref-jobs-9', label: 'Apple Store design', emoji: '🏪', description: 'Jobs: Retail as experience' },
-      { id: 'ref-jobs-10', label: 'iPad announcement', emoji: '📲', description: 'Jobs: Creating new categories' },
-      { id: 'ref-jobs-11', label: 'Antennagate response', emoji: '📡', description: 'Jobs: Crisis management' },
-      { id: 'ref-jobs-12', label: 'Lost Interview documentary', emoji: '🎥', description: 'Jobs: Unfiltered philosophy' },
-      { id: 'ref-jobs-13', label: 'All Things D interviews', emoji: '💬', description: 'Jobs: On-stage candor' },
-      { id: 'ref-jobs-14', label: 'Toy Story involvement', emoji: '🤠', description: 'Jobs: Story over technology' },
+      // Steve Jobs inspirations - Zen, Bauhaus, calligraphy, perfection
+      { id: 'ref-jobs-1', label: 'Kyoto Zen gardens', emoji: '🪴', description: 'Jobs: Simplicity as truth' },
+      { id: 'ref-jobs-2', label: 'Bauhaus design school', emoji: '◼️', description: 'Jobs: Form follows function' },
+      { id: 'ref-jobs-3', label: 'Autobiography of a Yogi', emoji: '🧘', description: 'Jobs: The book he reread yearly' },
+      { id: 'ref-jobs-4', label: 'Braun products', emoji: '📻', description: 'Jobs: Dieter Rams perfection' },
+      { id: 'ref-jobs-5', label: 'Bob Dylan lyrics', emoji: '🎸', description: 'Jobs: Poetry that changes everything' },
+      { id: 'ref-jobs-6', label: 'Calligraphy class', emoji: '✒️', description: 'Jobs: Beauty in letterforms' },
+      { id: 'ref-jobs-7', label: 'Ansel Adams photos', emoji: '📷', description: 'Jobs: Nature in perfect detail' },
+      { id: 'ref-jobs-8', label: 'Beatles White Album', emoji: '⬜', description: 'Jobs: Simple cover endless depth' },
+      { id: 'ref-jobs-9', label: 'Eames furniture', emoji: '🪑', description: 'Jobs: Design that lasts' },
+      { id: 'ref-jobs-10', label: 'Katsura Imperial Villa', emoji: '🏯', description: 'Jobs: Japanese architecture' },
+      { id: 'ref-jobs-11', label: 'Whole Earth Catalog', emoji: '🌍', description: 'Jobs: Tools for the mind' },
+      { id: 'ref-jobs-12', label: 'Edwin Land Polaroid', emoji: '📸', description: 'Jobs: Instant magic' },
 
-      // Summer Finn references - 500 Days, indie romance, detachment
-      { id: 'ref-summer-1', label: '500 Days of Summer film', emoji: '🎬', description: 'Summer: Not a love story' },
-      { id: 'ref-summer-2', label: 'IKEA scene', emoji: '🛋️', description: 'Summer: Playing house, not committing' },
-      { id: 'ref-summer-3', label: 'Bench breakup scene', emoji: '🪑', description: 'Summer: I dont feel it anymore' },
-      { id: 'ref-summer-4', label: 'Wedding ring reveal', emoji: '💍', description: 'Summer: Moved on instantly' },
-      { id: 'ref-summer-5', label: 'The Smiths music taste', emoji: '🎵', description: 'Summer: Shared interests arent love' },
-      { id: 'ref-summer-6', label: 'Expectations vs reality scene', emoji: '📊', description: 'Summer: What you wanted vs what happened' },
-      { id: 'ref-summer-7', label: 'Karaoke bar scene', emoji: '🎤', description: 'Summer: Fun without meaning' },
-      { id: 'ref-summer-8', label: 'Pancakes morning', emoji: '🥞', description: 'Summer: Domestic illusion' },
-      { id: 'ref-summer-9', label: 'Elevator first meeting', emoji: '🛗', description: 'Summer: Casual magic' },
-      { id: 'ref-summer-10', label: 'I like you speech', emoji: '💬', description: 'Summer: Honest but vague' },
-      { id: 'ref-summer-11', label: 'Party rooftop scene', emoji: '🌃', description: 'Summer: Mixed signals peak' },
-      { id: 'ref-summer-12', label: 'Hair touch moment', emoji: '✋', description: 'Summer: Intimate distance' },
+      // Summer Finn inspirations - indie music, vintage, detachment, freedom
+      { id: 'ref-summer-1', label: 'The Smiths records', emoji: '🎵', description: 'Summer: Melancholy as aesthetic' },
+      { id: 'ref-summer-2', label: 'Vintage thrift stores', emoji: '👗', description: 'Summer: Old things new context' },
+      { id: 'ref-summer-3', label: 'French New Wave films', emoji: '🎬', description: 'Summer: Casual cool' },
+      { id: 'ref-summer-4', label: 'Belle and Sebastian', emoji: '🎶', description: 'Summer: Twee with edge' },
+      { id: 'ref-summer-5', label: 'Polaroid snapshots', emoji: '📸', description: 'Summer: Moments not memories' },
+      { id: 'ref-summer-6', label: 'LA farmers market', emoji: '🍎', description: 'Summer: Wandering aimlessly' },
+      { id: 'ref-summer-7', label: 'Amelie film', emoji: '🎥', description: 'Summer: Whimsy without commitment' },
+      { id: 'ref-summer-8', label: 'Record store browsing', emoji: '📀', description: 'Summer: Discovery as hobby' },
+      { id: 'ref-summer-9', label: 'Late night diners', emoji: '🍳', description: 'Summer: Nowhere to be' },
+      { id: 'ref-summer-10', label: 'Zooey Deschanel vibe', emoji: '🎀', description: 'Summer: Quirky keeps distance' },
+      { id: 'ref-summer-11', label: 'Echo Park sunsets', emoji: '🌅', description: 'Summer: Beautiful then gone' },
+      { id: 'ref-summer-12', label: 'Wes Anderson palette', emoji: '🎨', description: 'Summer: Curated spontaneity' },
 
-      // Coco Chanel references - fashion, independence, quotes
-      { id: 'ref-chanel-1', label: 'Little black dress', emoji: '👗', description: 'Chanel: Simplicity is elegance' },
-      { id: 'ref-chanel-2', label: 'Chanel No 5', emoji: '🌸', description: 'Chanel: Choosing from 24 samples' },
-      { id: 'ref-chanel-3', label: 'Cutting her own hair', emoji: '✂️', description: 'Chanel: Started a revolution by accident' },
-      { id: 'ref-chanel-4', label: 'Ritz Hotel years', emoji: '🏨', description: 'Chanel: Living on her own terms' },
-      { id: 'ref-chanel-5', label: 'Freeing women from corsets', emoji: '🔓', description: 'Chanel: Comfort as revolution' },
-      { id: 'ref-chanel-6', label: 'Fashion fades style quote', emoji: '💬', description: 'Chanel: Style is eternal' },
-      { id: 'ref-chanel-7', label: 'Chanel suit design', emoji: '🧥', description: 'Chanel: Power dressing invented' },
-      { id: 'ref-chanel-8', label: 'Jersey fabric innovation', emoji: '🧵', description: 'Chanel: Luxury from simplicity' },
-      { id: 'ref-chanel-9', label: 'Orphanage childhood', emoji: '🏚️', description: 'Chanel: Hardship as fuel' },
-      { id: 'ref-chanel-10', label: 'Boy Capel relationship', emoji: '💔', description: 'Chanel: Love that shaped her' },
-      { id: 'ref-chanel-11', label: 'Comeback at 71', emoji: '👵', description: 'Chanel: Never too late' },
-      { id: 'ref-chanel-12', label: 'Costume jewelry revolution', emoji: '💎', description: 'Chanel: Fake as statement' },
-      { id: 'ref-chanel-13', label: 'Two-tone shoes', emoji: '👠', description: 'Chanel: Details matter' },
-      { id: 'ref-chanel-14', label: 'Working until death', emoji: '✂️', description: 'Chanel: Craft as life' },
+      // Coco Chanel inspirations - horse riding, English style, simplicity, rebellion
+      { id: 'ref-chanel-1', label: 'English riding habits', emoji: '🐴', description: 'Chanel: Clothes that let you move' },
+      { id: 'ref-chanel-2', label: 'Aubazine convent', emoji: '⛪', description: 'Chanel: Where she learned clean lines' },
+      { id: 'ref-chanel-3', label: 'Duke of Westminster yacht', emoji: '⛵', description: 'Chanel: Nautical inspiration' },
+      { id: 'ref-chanel-4', label: 'Venice architecture', emoji: '🏛️', description: 'Chanel: Byzantine gold and pearls' },
+      { id: 'ref-chanel-5', label: 'Russian ballet', emoji: '🩰', description: 'Chanel: Stravinsky and Diaghilev' },
+      { id: 'ref-chanel-6', label: 'Scottish tweed mills', emoji: '🧥', description: 'Chanel: Humble fabric made luxe' },
+      { id: 'ref-chanel-7', label: 'Deauville beach town', emoji: '🏖️', description: 'Chanel: Where she started it all' },
+      { id: 'ref-chanel-8', label: 'Mens polo shirts', emoji: '👔', description: 'Chanel: Borrowing from boys' },
+      { id: 'ref-chanel-9', label: 'Camellias flowers', emoji: '🌸', description: 'Chanel: Her signature bloom' },
+      { id: 'ref-chanel-10', label: 'Art Deco geometry', emoji: '◼️', description: 'Chanel: Clean modern lines' },
+      { id: 'ref-chanel-11', label: 'Coromandel screens', emoji: '🎎', description: 'Chanel: Chinese lacquer beauty' },
+      { id: 'ref-chanel-12', label: 'Jean Cocteau friendship', emoji: '✨', description: 'Chanel: Artist as muse' },
 
-      // Machiavelli references - The Prince, strategy, power
-      { id: 'ref-machiavelli-1', label: 'The Prince book', emoji: '📖', description: 'Machiavelli: Handbook for rulers' },
-      { id: 'ref-machiavelli-2', label: 'Cesare Borgia observations', emoji: '👁️', description: 'Machiavelli: Watching ruthless power' },
-      { id: 'ref-machiavelli-3', label: 'Exile and torture period', emoji: '⛓️', description: 'Machiavelli: Suffering sharpens insight' },
-      { id: 'ref-machiavelli-4', label: 'Better to be feared quote', emoji: '😨', description: 'Machiavelli: Fear over love if choosing' },
-      { id: 'ref-machiavelli-5', label: 'Fortune is a woman quote', emoji: '🎲', description: 'Machiavelli: Bold action beats caution' },
-      { id: 'ref-machiavelli-6', label: 'Discourses on Livy', emoji: '📜', description: 'Machiavelli: Republican ideals hidden' },
-      { id: 'ref-machiavelli-7', label: 'Florentine Histories', emoji: '🏛️', description: 'Machiavelli: Power through narrative' },
-      { id: 'ref-machiavelli-8', label: 'The Art of War treatise', emoji: '⚔️', description: 'Machiavelli: Military strategy' },
-      { id: 'ref-machiavelli-9', label: 'Mandragola comedy', emoji: '🎭', description: 'Machiavelli: Satire as weapon' },
-      { id: 'ref-machiavelli-10', label: 'Letter to Vettori', emoji: '✉️', description: 'Machiavelli: Writing The Prince story' },
-      { id: 'ref-machiavelli-11', label: 'Fox and lion metaphor', emoji: '🦊', description: 'Machiavelli: Cunning plus strength' },
-      { id: 'ref-machiavelli-12', label: 'Ends justify means', emoji: '🎯', description: 'Machiavelli: Results over morality' },
-      { id: 'ref-machiavelli-13', label: 'Appearances matter', emoji: '🎭', description: 'Machiavelli: Seem vs be' },
-      { id: 'ref-machiavelli-14', label: 'New prince advice', emoji: '👑', description: 'Machiavelli: Starting from nothing' }
+      // Machiavelli inspirations - Roman history, chess, diplomacy, observation
+      { id: 'ref-machiavelli-1', label: 'Livy\'s History of Rome', emoji: '🏛️', description: 'Machiavelli: Past predicts future' },
+      { id: 'ref-machiavelli-2', label: 'Chess endgames', emoji: '♟️', description: 'Machiavelli: Position is everything' },
+      { id: 'ref-machiavelli-3', label: 'Roman Senate debates', emoji: '🏛️', description: 'Machiavelli: Rhetoric as weapon' },
+      { id: 'ref-machiavelli-4', label: 'Sun Tzu Art of War', emoji: '⚔️', description: 'Machiavelli: Win without fighting' },
+      { id: 'ref-machiavelli-5', label: 'Florentine piazzas', emoji: '🏰', description: 'Machiavelli: Where deals are made' },
+      { id: 'ref-machiavelli-6', label: 'Plutarchs Lives', emoji: '📜', description: 'Machiavelli: Character studies in power' },
+      { id: 'ref-machiavelli-7', label: 'Vatican diplomacy', emoji: '⛪', description: 'Machiavelli: Watching masters play' },
+      { id: 'ref-machiavelli-8', label: 'Medici court politics', emoji: '👑', description: 'Machiavelli: Power up close' },
+      { id: 'ref-machiavelli-9', label: 'Hannibal\'s campaigns', emoji: '🐘', description: 'Machiavelli: Bold moves win' },
+      { id: 'ref-machiavelli-10', label: 'Cicero\'s letters', emoji: '✉️', description: 'Machiavelli: Persuasion as art' },
+      { id: 'ref-machiavelli-11', label: 'Tuscan countryside', emoji: '🍇', description: 'Machiavelli: Exile thinking time' },
+      { id: 'ref-machiavelli-12', label: 'Thucydides Peloponnesian', emoji: '📖', description: 'Machiavelli: War is human nature' }
     ]
   }
 
