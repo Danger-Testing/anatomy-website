@@ -82,9 +82,10 @@ ${body.content}`
     })
 
   } catch (error) {
-    console.error('Merge trait error:', error)
+    const err = error as Error
+    console.error('Merge trait error:', err.message, err.stack)
     return NextResponse.json(
-      { error: 'Failed to merge trait', details: (error as Error).message },
+      { error: 'Failed to merge trait', details: err.message, stack: err.stack },
       { status: 500 }
     )
   }

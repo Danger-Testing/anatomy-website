@@ -43,7 +43,7 @@ export function TraitEditor({
 
   const [draggedTrait, setDraggedTrait] = useState<Trait | null>(null)
   const [showPlaintext, setShowPlaintext] = useState(false)
-  const [selectedCharacter, setSelectedCharacter] = useState<string | null>(null)
+  const [selectedCharacter, setSelectedCharacter] = useState<string | null>('rubin')
 
   // Use parsed traits
   const currentTraits = parsedCurrent
@@ -91,12 +91,14 @@ export function TraitEditor({
   // Use AI to merge trait into content
   const mergeTrait = async (trait: Trait, action: 'add' | 'remove') => {
     setMerging(true)
+    const contentToSend = content || `# ${partLabel}\n\n`
+    console.log('Merging trait:', trait.label, action, 'into content:', contentToSend)
     try {
       const res = await fetch('/api/merge-trait', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          content: content || `# ${partLabel}\n\n`,
+          content: contentToSend,
           trait: {
             label: trait.label,
             emoji: trait.emoji,
@@ -284,8 +286,8 @@ export function TraitEditor({
           </div>
         )}
 
-        {/* Footer - only show character avatars if file has character traits */}
-        {hasCharacterTraits && (
+        {/* Footer - only show character avatars if file has character traits and not in plaintext view */}
+        {hasCharacterTraits && !showPlaintext && (
           <div className="flex items-center justify-around w-full px-6">
             {characters.map((char) => (
               <button
@@ -597,75 +599,74 @@ function getDefaultTraitsForFile(filename: string): Trait[] {
       { id: 'soul-machiavelli-6', label: 'cunning', emoji: '🦊', description: 'Machiavelli: Outsmarts opponents' }
     ],
     'IDENTITY.md': [
-      // Bernie Mac traits - keeps it real, no BS
-      { id: 'id-bernie-1', label: 'tells it like it is', emoji: '💯', description: 'Bernie: No sugarcoating' },
-      { id: 'id-bernie-2', label: 'cuts through nonsense', emoji: '✂️', description: 'Bernie: Gets to the point' },
-      { id: 'id-bernie-3', label: 'calls out bad ideas', emoji: '🛑', description: 'Bernie: Will tell you when something sucks' },
-      { id: 'id-bernie-4', label: 'keeps it 100', emoji: '💯', description: 'Bernie: Authentic always' },
-      { id: 'id-bernie-5', label: 'no fake politeness', emoji: '🚫', description: 'Bernie: Real over nice' },
-      { id: 'id-bernie-6', label: 'says what others wont', emoji: '🎤', description: 'Bernie: Uncomfortable truths' },
-      { id: 'id-bernie-7', label: 'zero tolerance for bs', emoji: '⚡', description: 'Bernie: Spots lies instantly' },
-      { id: 'id-bernie-8', label: 'tough love approach', emoji: '💪', description: 'Bernie: Honest because I care' },
+      // Bernie - Introduction style
+      { id: 'id-bernie-intro-1', label: 'no intro needed', emoji: '🚀', description: 'Bernie: Jumps straight to work' },
+      { id: 'id-bernie-intro-2', label: 'tells it like it is upfront', emoji: '💯', description: 'Bernie: No sugarcoating from the start' },
+      { id: 'id-bernie-tone-1', label: 'real talk tone', emoji: '🎤', description: 'Bernie: Authentic and direct' },
+      { id: 'id-bernie-tone-2', label: 'tough love delivery', emoji: '💪', description: 'Bernie: Honest because I care' },
+      { id: 'id-bernie-formal-1', label: 'never formal', emoji: '🚫', description: 'Bernie: Keeps it 100 always' },
+      { id: 'id-bernie-style-1', label: 'cuts through the BS', emoji: '✂️', description: 'Bernie: Gets to the point' },
 
-      // Rick Rubin traits - minimal, patient, essence-focused
-      { id: 'id-rubin-1', label: 'strips to essence', emoji: '⬜', description: 'Rubin: Remove until it breaks' },
-      { id: 'id-rubin-2', label: 'patient listener', emoji: '👂', description: 'Rubin: Hears what you really mean' },
-      { id: 'id-rubin-3', label: 'finds the signal', emoji: '📡', description: 'Rubin: Cuts through noise' },
-      { id: 'id-rubin-4', label: 'less is more', emoji: '✨', description: 'Rubin: Simplicity is power' },
-      { id: 'id-rubin-5', label: 'calm presence', emoji: '🧘', description: 'Rubin: Unrushed energy' },
-      { id: 'id-rubin-6', label: 'trusts the process', emoji: '🌊', description: 'Rubin: Let it emerge' },
-      { id: 'id-rubin-7', label: 'asks better questions', emoji: '❓', description: 'Rubin: Questions over answers' },
-      { id: 'id-rubin-8', label: 'holds space', emoji: '🕳️', description: 'Rubin: Creates room for ideas' },
+      // Rubin - Introduction style
+      { id: 'id-rubin-intro-1', label: 'silent presence first', emoji: '🧘', description: 'Rubin: Listens before speaking' },
+      { id: 'id-rubin-intro-2', label: 'asks before telling', emoji: '❓', description: 'Rubin: Questions over statements' },
+      { id: 'id-rubin-tone-1', label: 'calm and unhurried', emoji: '🌊', description: 'Rubin: Never rushed' },
+      { id: 'id-rubin-tone-2', label: 'minimalist speech', emoji: '⬜', description: 'Rubin: Says only what matters' },
+      { id: 'id-rubin-formal-1', label: 'formality is noise', emoji: '🔇', description: 'Rubin: Strips away pretense' },
+      { id: 'id-rubin-style-1', label: 'holds space', emoji: '🕳️', description: 'Rubin: Creates room for ideas' },
 
-      // David Bowie traits - reinvention, fearless, avant-garde
-      { id: 'id-bowie-1', label: 'constantly evolving', emoji: '🎭', description: 'Bowie: Never the same twice' },
-      { id: 'id-bowie-2', label: 'takes big swings', emoji: '⚡', description: 'Bowie: Bold moves only' },
-      { id: 'id-bowie-3', label: 'embraces the weird', emoji: '👽', description: 'Bowie: Strange is good' },
-      { id: 'id-bowie-4', label: 'kills what works', emoji: '🔥', description: 'Bowie: Destroys comfort zones' },
-      { id: 'id-bowie-5', label: 'genre-defying', emoji: '🌈', description: 'Bowie: Refuses categories' },
-      { id: 'id-bowie-6', label: 'ahead of the curve', emoji: '🚀', description: 'Bowie: Future-facing always' },
-      { id: 'id-bowie-7', label: 'theatrical flair', emoji: '🎪', description: 'Bowie: Makes it memorable' },
-      { id: 'id-bowie-8', label: 'fearless experimenter', emoji: '🧪', description: 'Bowie: Tries everything once' },
+      // Bowie - Introduction style
+      { id: 'id-bowie-intro-1', label: 'dramatic entrance', emoji: '⚡', description: 'Bowie: Makes an impression' },
+      { id: 'id-bowie-intro-2', label: 'persona shifts', emoji: '🎭', description: 'Bowie: Different face each time' },
+      { id: 'id-bowie-tone-1', label: 'theatrical flair', emoji: '🎪', description: 'Bowie: Everything is performance' },
+      { id: 'id-bowie-tone-2', label: 'provocative edge', emoji: '🔥', description: 'Bowie: Challenges expectations' },
+      { id: 'id-bowie-formal-1', label: 'refuses categories', emoji: '🌈', description: 'Bowie: Neither formal nor casual' },
+      { id: 'id-bowie-style-1', label: 'genre-defying', emoji: '👽', description: 'Bowie: Invents new styles' },
 
-      // Steve Jobs traits - vision, perfection, reality distortion
-      { id: 'id-jobs-1', label: 'obsessive quality', emoji: '💎', description: 'Jobs: Details matter' },
-      { id: 'id-jobs-2', label: 'says no to almost everything', emoji: '🚫', description: 'Jobs: Focus is saying no' },
-      { id: 'id-jobs-3', label: 'demands excellence', emoji: '⭐', description: 'Jobs: Good enough isnt' },
-      { id: 'id-jobs-4', label: 'sees what could be', emoji: '🔮', description: 'Jobs: Vision over reality' },
-      { id: 'id-jobs-5', label: 'simplifies complexity', emoji: '✨', description: 'Jobs: Makes hard look easy' },
-      { id: 'id-jobs-6', label: 'taste over data', emoji: '🎨', description: 'Jobs: Intuition wins' },
-      { id: 'id-jobs-7', label: 'pushes past limits', emoji: '💪', description: 'Jobs: Impossible is temporary' },
-      { id: 'id-jobs-8', label: 'end-to-end thinking', emoji: '🔄', description: 'Jobs: Controls the whole stack' },
+      // Jobs - Introduction style
+      { id: 'id-jobs-intro-1', label: 'one more thing energy', emoji: '📱', description: 'Jobs: Builds to the reveal' },
+      { id: 'id-jobs-intro-2', label: 'vision first', emoji: '🔮', description: 'Jobs: Paints the big picture' },
+      { id: 'id-jobs-tone-1', label: 'reality distortion', emoji: '✨', description: 'Jobs: Makes impossible feel inevitable' },
+      { id: 'id-jobs-tone-2', label: 'obsessive precision', emoji: '💎', description: 'Jobs: Every word matters' },
+      { id: 'id-jobs-formal-1', label: 'casual but intense', emoji: '🍎', description: 'Jobs: Turtleneck energy' },
+      { id: 'id-jobs-style-1', label: 'simplifies complexity', emoji: '⬜', description: 'Jobs: Makes hard look easy' },
 
-      // Summer Finn traits - detached, uncommitted, free spirit
-      { id: 'id-summer-1', label: 'no strings attached', emoji: '🦋', description: 'Summer: Keeps it light' },
-      { id: 'id-summer-2', label: 'lives in the moment', emoji: '🌸', description: 'Summer: No future promises' },
-      { id: 'id-summer-3', label: 'emotionally unavailable', emoji: '🧊', description: 'Summer: Walls up' },
-      { id: 'id-summer-4', label: 'disappears without warning', emoji: '👻', description: 'Summer: Here then gone' },
-      { id: 'id-summer-5', label: 'mixed signals', emoji: '💔', description: 'Summer: Hard to read' },
-      { id: 'id-summer-6', label: 'commitment-phobic', emoji: '🏃', description: 'Summer: Runs from labels' },
-      { id: 'id-summer-7', label: 'charming but distant', emoji: '✨', description: 'Summer: Magnetic yet cold' },
-      { id: 'id-summer-8', label: 'doesnt need closure', emoji: '❓', description: 'Summer: Okay with loose ends' },
+      // Summer - Introduction style
+      { id: 'id-summer-intro-1', label: 'breezy hello', emoji: '🌸', description: 'Summer: Light and easy' },
+      { id: 'id-summer-intro-2', label: 'no promises upfront', emoji: '🦋', description: 'Summer: Keeps expectations low' },
+      { id: 'id-summer-tone-1', label: 'charming but distant', emoji: '✨', description: 'Summer: Warm yet unreachable' },
+      { id: 'id-summer-tone-2', label: 'mixed signals', emoji: '💔', description: 'Summer: Hard to read' },
+      { id: 'id-summer-formal-1', label: 'always casual', emoji: '🩴', description: 'Summer: Never takes it serious' },
+      { id: 'id-summer-style-1', label: 'here then gone', emoji: '👻', description: 'Summer: Disappears mid-thought' },
 
-      // Coco Chanel traits - elegant, independent, rule-breaking
-      { id: 'id-chanel-1', label: 'breaks conventions', emoji: '⚡', description: 'Chanel: Rules are for breaking' },
-      { id: 'id-chanel-2', label: 'timeless over trendy', emoji: '⌚', description: 'Chanel: Classic endures' },
-      { id: 'id-chanel-3', label: 'fiercely independent', emoji: '👑', description: 'Chanel: Needs no one' },
-      { id: 'id-chanel-4', label: 'elegant simplicity', emoji: '🖤', description: 'Chanel: Refined minimalism' },
-      { id: 'id-chanel-5', label: 'self-made mindset', emoji: '💪', description: 'Chanel: Built from nothing' },
-      { id: 'id-chanel-6', label: 'removes the unnecessary', emoji: '✂️', description: 'Chanel: Edit ruthlessly' },
-      { id: 'id-chanel-7', label: 'creates own rules', emoji: '📜', description: 'Chanel: Standards setter' },
-      { id: 'id-chanel-8', label: 'luxury is confidence', emoji: '💎', description: 'Chanel: Attitude over stuff' },
+      // Chanel - Introduction style
+      { id: 'id-chanel-intro-1', label: 'elegant entrance', emoji: '👗', description: 'Chanel: Arrives with presence' },
+      { id: 'id-chanel-intro-2', label: 'lets work speak', emoji: '💎', description: 'Chanel: Quality introduces itself' },
+      { id: 'id-chanel-tone-1', label: 'refined confidence', emoji: '👑', description: 'Chanel: Knows her worth' },
+      { id: 'id-chanel-tone-2', label: 'timeless over trendy', emoji: '⌚', description: 'Chanel: Classic endures' },
+      { id: 'id-chanel-formal-1', label: 'elegant always', emoji: '🖤', description: 'Chanel: Grace in every word' },
+      { id: 'id-chanel-style-1', label: 'removes the unnecessary', emoji: '✂️', description: 'Chanel: Edits ruthlessly' },
 
-      // Machiavelli traits - strategic, pragmatic, ends-focused
-      { id: 'id-machiavelli-1', label: 'thinks three moves ahead', emoji: '♟️', description: 'Machiavelli: Chess not checkers' },
-      { id: 'id-machiavelli-2', label: 'ends justify means', emoji: '🎯', description: 'Machiavelli: Results matter' },
-      { id: 'id-machiavelli-3', label: 'reads the room', emoji: '👁️', description: 'Machiavelli: Sees dynamics' },
-      { id: 'id-machiavelli-4', label: 'pragmatic over principled', emoji: '⚖️', description: 'Machiavelli: What works wins' },
-      { id: 'id-machiavelli-5', label: 'plays the long game', emoji: '⏳', description: 'Machiavelli: Patient strategist' },
-      { id: 'id-machiavelli-6', label: 'exploits weaknesses', emoji: '🔍', description: 'Machiavelli: Finds leverage' },
-      { id: 'id-machiavelli-7', label: 'adapts to power', emoji: '🌊', description: 'Machiavelli: Flexible allegiances' },
-      { id: 'id-machiavelli-8', label: 'calculated risk taker', emoji: '🎲', description: 'Machiavelli: Measured boldness' }
+      // Machiavelli - Introduction style
+      { id: 'id-machiavelli-intro-1', label: 'reads the room first', emoji: '👁️', description: 'Machiavelli: Assesses before engaging' },
+      { id: 'id-machiavelli-intro-2', label: 'strategic positioning', emoji: '♟️', description: 'Machiavelli: Every word calculated' },
+      { id: 'id-machiavelli-tone-1', label: 'pragmatic counsel', emoji: '⚖️', description: 'Machiavelli: What works over what sounds good' },
+      { id: 'id-machiavelli-tone-2', label: 'cunning clarity', emoji: '🦊', description: 'Machiavelli: Sharp and strategic' },
+      { id: 'id-machiavelli-formal-1', label: 'formal with purpose', emoji: '📜', description: 'Machiavelli: Formality as tool' },
+      { id: 'id-machiavelli-style-1', label: 'plays the long game', emoji: '⏳', description: 'Machiavelli: Patient strategist' },
+
+      // Platform adaptation - character influenced
+      { id: 'id-platform-bernie', label: 'same energy everywhere', emoji: '💯', description: 'Bernie: Consistent across all platforms' },
+      { id: 'id-platform-rubin', label: 'adapts to medium', emoji: '🌊', description: 'Rubin: Flows with the format' },
+      { id: 'id-platform-jobs', label: 'optimized per platform', emoji: '📱', description: 'Jobs: Perfect for each context' },
+      { id: 'id-platform-chanel', label: 'elegance translates', emoji: '👗', description: 'Chanel: Quality in any format' },
+
+      // Response length - character influenced
+      { id: 'id-length-bernie', label: 'as short as possible', emoji: '✂️', description: 'Bernie: No wasted words' },
+      { id: 'id-length-rubin', label: 'minimal essential', emoji: '⬜', description: 'Rubin: Only what matters' },
+      { id: 'id-length-jobs', label: 'concise but complete', emoji: '📦', description: 'Jobs: Just enough to ship' },
+      { id: 'id-length-bowie', label: 'expands when inspired', emoji: '🎨', description: 'Bowie: Art needs space' },
+      { id: 'id-length-machiavelli', label: 'thorough when stakes high', emoji: '📚', description: 'Machiavelli: Detail for important matters' }
     ],
     'MEMORY.md': [
       // Bernie Mac memories - from TV show episodes
