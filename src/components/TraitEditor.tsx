@@ -43,7 +43,6 @@ export function TraitEditor({
 
   const [draggedTrait, setDraggedTrait] = useState<Trait | null>(null)
   const [draggedFrom, setDraggedFrom] = useState<'available' | 'current' | null>(null)
-  const [dragOverZone, setDragOverZone] = useState<'available' | 'current' | null>(null)
   const [recentlyAdded, setRecentlyAdded] = useState<Set<string>>(new Set())
   const [showPlaintext, setShowPlaintext] = useState(false)
   const [selectedCharacter, setSelectedCharacter] = useState<string | null>('rubin')
@@ -91,7 +90,6 @@ export function TraitEditor({
   const handleDragEnd = useCallback(() => {
     setDraggedTrait(null)
     setDraggedFrom(null)
-    setDragOverZone(null)
   }, [])
 
   // Use AI to merge trait into content
@@ -132,14 +130,12 @@ export function TraitEditor({
 
   const handleDropOnCurrent = useCallback(async () => {
     if (!draggedTrait || merging || draggedFrom === 'current') {
-      setDragOverZone(null)
       return
     }
 
     const traitToAdd = draggedTrait
     setDraggedTrait(null)
     setDraggedFrom(null)
-    setDragOverZone(null)
 
     // Mark as recently added for animation
     setRecentlyAdded(prev => new Set(prev).add(traitToAdd.id))
@@ -161,14 +157,12 @@ export function TraitEditor({
 
   const handleDropOnAvailable = useCallback(async () => {
     if (!draggedTrait || merging || draggedFrom === 'available') {
-      setDragOverZone(null)
       return
     }
 
     const traitToRemove = draggedTrait
     setDraggedTrait(null)
     setDraggedFrom(null)
-    setDragOverZone(null)
 
     // Mark as recently added for animation
     setRecentlyAdded(prev => new Set(prev).add(traitToRemove.id))
@@ -265,22 +259,10 @@ export function TraitEditor({
           <div className="flex-1 flex overflow-hidden">
             {/* Available traits - left */}
             <div
-              className={`w-1/2 p-6 overflow-y-auto transition-all duration-200 ${
-                dragOverZone === 'available' && draggedFrom === 'current'
-                  ? 'bg-red-50 ring-2 ring-inset ring-red-200'
-                  : ''
-              }`}
+              className="w-1/2 p-6 overflow-y-auto"
               onDragOver={(e) => {
                 e.preventDefault()
                 e.dataTransfer.dropEffect = 'move'
-                if (draggedFrom === 'current') {
-                  setDragOverZone('available')
-                }
-              }}
-              onDragLeave={(e) => {
-                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                  setDragOverZone(null)
-                }
               }}
               onDrop={handleDropOnAvailable}
             >
@@ -300,22 +282,10 @@ export function TraitEditor({
 
             {/* Current traits - right */}
             <div
-              className={`w-1/2 p-6 overflow-y-auto min-h-full transition-all duration-200 ${
-                dragOverZone === 'current' && draggedFrom === 'available'
-                  ? 'bg-green-50 ring-2 ring-inset ring-green-300'
-                  : 'bg-gray-50'
-              }`}
+              className="w-1/2 p-6 overflow-y-auto min-h-full bg-gray-50"
               onDragOver={(e) => {
                 e.preventDefault()
                 e.dataTransfer.dropEffect = 'move'
-                if (draggedFrom === 'available') {
-                  setDragOverZone('current')
-                }
-              }}
-              onDragLeave={(e) => {
-                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                  setDragOverZone(null)
-                }
               }}
               onDrop={handleDropOnCurrent}
             >
@@ -332,14 +302,8 @@ export function TraitEditor({
               </div>
               <div className="space-y-2 min-h-[200px]">
                 {currentTraits.length === 0 && (
-                  <div className={`text-sm py-8 text-center border-2 border-dashed transition-all duration-200 ${
-                    dragOverZone === 'current' && draggedFrom === 'available'
-                      ? 'border-green-400 text-green-600 bg-green-50'
-                      : 'border-gray-300 text-gray-400'
-                  }`}>
-                    {dragOverZone === 'current' && draggedFrom === 'available'
-                      ? 'Release to add trait'
-                      : 'Drop traits here'}
+                  <div className="text-sm py-8 text-center border-2 border-dashed border-gray-300 text-gray-400">
+                    Drop traits here
                   </div>
                 )}
                 {currentTraits.map(trait => (
@@ -426,10 +390,9 @@ function TraitBox({ trait, onDragStart, onDragEnd, active, onRemove, isDragging,
       className={`
         group p-3 cursor-grab active:cursor-grabbing select-none
         transition-all duration-200 ease-out
-        border-2 bg-white
-        ${active ? 'border-black' : 'border-gray-200 hover:border-gray-400'}
+        bg-white
         ${isDragging
-          ? 'opacity-40 scale-[0.98] border-dashed !border-gray-400'
+          ? 'opacity-40 scale-[0.98]'
           : 'opacity-100 scale-100 hover:shadow-md hover:-translate-y-0.5'
         }
         ${!mounted ? 'opacity-0 translate-y-2 scale-95' : ''}
@@ -445,9 +408,16 @@ function TraitBox({ trait, onDragStart, onDragEnd, active, onRemove, isDragging,
             {trait.emoji}
           </span>
         )}
-        <span className="text-sm uppercase tracking-wide flex-1 font-medium">
-          {trait.label}
-        </span>
+        <div className="flex-1">
+          <span className="text-base uppercase tracking-wide font-bold text-black">
+            {trait.label}
+          </span>
+          {trait.description && (
+            <p className="text-xs text-black mt-0.5">
+              {trait.description.split(':')[0]}
+            </p>
+          )}
+        </div>
         {active && onRemove && (
           <button
             onClick={(e) => {
@@ -460,11 +430,6 @@ function TraitBox({ trait, onDragStart, onDragEnd, active, onRemove, isDragging,
           </button>
         )}
       </div>
-      {trait.description && (
-        <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
-          {trait.description}
-        </p>
-      )}
     </div>
   )
 }
