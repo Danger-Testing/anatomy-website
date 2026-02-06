@@ -338,11 +338,13 @@ export default function Editor() {
         style={{ minHeight: '100vh' }}
       >
         {/* Logo in top left */}
-        <img
-          src="/logo.svg"
-          alt="Anatomy Logo"
-          className="absolute top-6 left-6 z-50 w-[50vw] max-w-[500px] min-w-[250px] h-auto"
-        />
+        <a href="/">
+          <img
+            src="/logo.svg"
+            alt="Anatomy Logo"
+            className="absolute top-6 left-6 z-50 w-[50vw] max-w-[500px] min-w-[250px] h-auto hover:opacity-60 transition-opacity cursor-pointer"
+          />
+        </a>
 
         {/* Lobster + artifacts container (scaled up) */}
         <div
