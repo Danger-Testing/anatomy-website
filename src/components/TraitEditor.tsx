@@ -108,9 +108,12 @@ export function TraitEditor({
       })
 
       const data = await res.json()
+      console.log('Merge result:', data)
       if (data.success && data.content) {
         setContent(data.content)
         onSave(data.content)
+      } else {
+        console.error('Merge failed:', data)
       }
     } catch (error) {
       console.error('Failed to merge trait:', error)

@@ -311,21 +311,12 @@ export default function Editor() {
       <header className="fixed top-0 left-0 right-0 z-[200]">
         <div className="flex items-center justify-between px-6 py-4">
           <div></div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={saveConfig}
-              disabled={saving}
-              className="text-black text-lg uppercase tracking-wider font-bold disabled:opacity-50"
-            >
-              {saving ? "saving..." : "save"}
-            </button>
-            <button
-              onClick={markReady}
-              className="text-black text-lg uppercase tracking-wider font-bold"
-            >
-              ready
-            </button>
-          </div>
+          <button
+            onClick={markReady}
+            className="text-black text-lg uppercase tracking-wider font-bold"
+          >
+            ready
+          </button>
         </div>
       </header>
 
