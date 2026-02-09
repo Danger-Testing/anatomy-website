@@ -45,6 +45,15 @@ export default function DemoEditor() {
         className="fixed bottom-6 right-6 z-[200] w-48 h-auto"
       />
 
+      {/* Sacrifice button bottom left */}
+      <a href="/khaled" className="fixed bottom-6 left-6 z-[200]">
+        <img
+          src="/sacrifice.png"
+          alt="Sacrifice"
+          className="w-72 h-auto"
+        />
+      </a>
+
       {/* Canvas */}
       <div
         ref={containerRef}
@@ -76,7 +85,7 @@ export default function DemoEditor() {
               backgroundSize: 'contain',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',
-              opacity: 0.15
+              opacity: 0.55
             }}
           />
 

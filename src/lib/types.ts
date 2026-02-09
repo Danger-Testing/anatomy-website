@@ -27,7 +27,7 @@ export const DEFAULT_BODY_PARTS: BodyPart[] = [
     filename: 'IDENTITY.md',
     label: 'Identity',
     imageUrl: '/identity.png',
-    position: { x: 57.51, y: 49.39, width: 100, height: 100 }
+    position: { x: 57.51, y: 49.39, width: 140, height: 140 }
   },
   {
     id: 'soul-left',
@@ -62,7 +62,7 @@ export const DEFAULT_BODY_PARTS: BodyPart[] = [
     filename: 'TOOLS.md',
     label: 'Tools',
     imageUrl: '/tool.png',
-    position: { x: 71.78, y: 29.24, width: 100, height: 100 }
+    position: { x: 71.78, y: 29.24, width: 140, height: 140 }
   },
   {
     id: 'reference',
@@ -76,6 +76,6 @@ export const DEFAULT_BODY_PARTS: BodyPart[] = [
     filename: 'USER.md',
     label: 'User',
     imageUrl: '/user.png',
-    position: { x: 21.21, y: 40.64, width: 100, height: 100 }
+    position: { x: 21.21, y: 40.64, width: 140, height: 140 }
   }
 ]

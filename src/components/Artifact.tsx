@@ -121,14 +121,6 @@ export function Artifact({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Label on top */}
-      <div
-        className="absolute -top-8 left-1/2 -translate-x-1/2 text-lg uppercase tracking-wider font-bold whitespace-nowrap"
-        style={{ color: '#000' }}
-      >
-        {part.label}
-      </div>
-
       {/* The artifact image */}
       <img
         src={part.imageUrl}
@@ -136,6 +128,14 @@ export function Artifact({
         className="w-full h-full object-contain"
         draggable={false}
       />
+
+      {/* Label below */}
+      <div
+        className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-lg uppercase tracking-wider font-bold whitespace-nowrap"
+        style={{ color: '#000' }}
+      >
+        {part.label}
+      </div>
 
     </div>
   )

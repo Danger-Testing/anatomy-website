@@ -130,6 +130,15 @@ export default function Home() {
         className="absolute bottom-6 right-6 z-50 w-48 h-auto"
       />
 
+      {/* Sacrifice button bottom left */}
+      <a href="/khaled" className="absolute bottom-6 left-6 z-50">
+        <img
+          src="/sacrifice.png"
+          alt="Sacrifice"
+          className="w-72 h-auto"
+        />
+      </a>
+
       {/* Demo button top right */}
       <a
         href="/edit/demo"

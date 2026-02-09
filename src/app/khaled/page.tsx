@@ -110,12 +110,16 @@ export default function KhaledPage() {
       const anyFalling = prev.some(l => !l.landed)
       if (anyFalling) return prev
 
+      // After 30 lobsters, constrain x to 30%-70% range (30% padding on each side)
+      const landedCount = prev.filter(l => l.landed).length
+      const xRange = landedCount >= 30 ? { min: 30, max: 70 } : { min: 25, max: 75 }
+
       const newLobster: FallingLobster = {
         id: `falling-${Date.now()}-${Math.random()}`,
         dataId: lobsterData.id,
         name: lobsterData.name,
         confession: lobsterData.confession,
-        x: Math.random() * 50 + 25,
+        x: Math.random() * (xRange.max - xRange.min) + xRange.min,
         y: -15,
         rotation: Math.random() * 360,
         speed: 2 + Math.random() * 3,
@@ -146,10 +150,13 @@ export default function KhaledPage() {
   }, [audioReady, soundEnabled, playSound, spawnBubble, spawnNextLobster])
 
   useEffect(() => {
-    const tableLevel = 83
     const animate = () => {
-      setLobsters(prev =>
-        prev.map(lobster => {
+      setLobsters(prev => {
+        const landedCount = prev.filter(l => l.landed).length
+        // After 30 lobsters, stack higher (70%) instead of table level (83%)
+        const tableLevel = landedCount >= 30 ? 70 : 83
+
+        return prev.map(lobster => {
           if (lobster.delay > 0) {
             return { ...lobster, delay: lobster.delay - 50 }
           }
@@ -162,7 +169,7 @@ export default function KhaledPage() {
             rotation: lobster.rotation + 2,
           }
         })
-      )
+      })
     }
 
     const animationInterval = setInterval(animate, 50)
@@ -200,11 +207,20 @@ export default function KhaledPage() {
       style={{ backgroundColor: '#FFFFFF' }}
       onClick={handleClick}
     >
+      {/* Back button top left */}
+      <a
+        href="/edit/demo"
+        className="absolute top-8 left-8 z-50 text-base uppercase hover:opacity-70 transition-opacity text-black"
+      >
+        ← Back
+      </a>
+
+      {/* Add Skill button top right */}
       <button
         onClick={copySkillLink}
-        className="absolute top-8 left-8 z-50 text-base uppercase cursor-pointer hover:opacity-70 transition-opacity text-black"
+        className="absolute top-8 right-8 z-50 text-base uppercase cursor-pointer hover:opacity-70 transition-opacity text-black"
       >
-        {skillCopied ? 'COPIED!' : 'SKILL'}
+        {skillCopied ? 'COPIED!' : 'Add Skill'}
       </button>
 
       <img
